@@ -12,7 +12,11 @@ yarn-error.log*
 pnpm-debug.log*
 coverage
 
-# Local screenshots/test uploads in the repo root. Put committed app assets under src/assets/.
+# Local screenshots/test uploads. Put committed app assets under src/assets/images/.
+local-images/*
+!local-images/.gitkeep
+
+# Keep old root test images ignored if they are added again.
 /*.png
 /*.jpg
 /*.jpeg

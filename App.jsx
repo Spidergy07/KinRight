@@ -137,20 +137,29 @@ const PROFILE_GROUPS = {
 };
 
 const SPICE_LABELS = ['None', 'Gentle', 'Mild', 'Medium', 'Hot', 'Local'];
+const SPICE_HELP = ['No chili', 'Very light', '1-2 chilis', 'Balanced', 'Spicy', 'Thai spicy'];
 const FOOD_LIST = Object.values(FOOD_DATABASE);
+const MAX_ANALYSIS_UPLOAD_BYTES = 3.8 * 1024 * 1024;
+const IMAGE_MAX_DIMENSION = 1600;
 
 const getApiBaseUrl = () => {
   const configuredUrl = import.meta.env.VITE_API_URL;
 
   if (typeof window === 'undefined') return configuredUrl || 'http://localhost:3000';
 
-  const fallbackUrl = `${window.location.protocol}//${window.location.hostname}:3000`;
+  const pageHost = window.location.hostname;
+  const isLocalPage =
+    ['localhost', '127.0.0.1', '::1'].includes(pageHost) ||
+    pageHost.startsWith('192.168.') ||
+    pageHost.startsWith('10.') ||
+    /^172\.(1[6-9]|2\d|3[0-1])\./.test(pageHost);
+  const fallbackUrl = isLocalPage ? `${window.location.protocol}//${pageHost}:3000` : window.location.origin;
+
   if (!configuredUrl) return fallbackUrl;
 
   try {
     const url = new URL(configuredUrl, window.location.origin);
-    const pageHost = window.location.hostname;
-    const pageIsLan = !['localhost', '127.0.0.1', '::1'].includes(pageHost);
+    const pageIsLan = isLocalPage && !['localhost', '127.0.0.1', '::1'].includes(pageHost);
     const apiIsLocalhost = ['localhost', '127.0.0.1', '::1'].includes(url.hostname);
 
     if (pageIsLan && apiIsLocalhost) {
@@ -166,6 +175,65 @@ const getApiBaseUrl = () => {
 const API_BASE_URL = getApiBaseUrl();
 
 const titleCase = value => value.charAt(0).toUpperCase() + value.slice(1);
+
+const loadImageElement = file =>
+  new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const image = new Image();
+
+    image.onload = () => {
+      URL.revokeObjectURL(url);
+      resolve(image);
+    };
+    image.onerror = () => {
+      URL.revokeObjectURL(url);
+      reject(new Error('Could not read this image. Try another photo.'));
+    };
+    image.src = url;
+  });
+
+const canvasToBlob = (canvas, quality) =>
+  new Promise((resolve, reject) => {
+    canvas.toBlob(
+      blob => {
+        if (!blob) {
+          reject(new Error('Could not prepare this image for upload.'));
+          return;
+        }
+
+        resolve(blob);
+      },
+      'image/jpeg',
+      quality
+    );
+  });
+
+const prepareImageForUpload = async file => {
+  if (!file.type.startsWith('image/')) return file;
+  if (file.size <= MAX_ANALYSIS_UPLOAD_BYTES) return file;
+
+  const image = await loadImageElement(file);
+  const scale = Math.min(1, IMAGE_MAX_DIMENSION / Math.max(image.naturalWidth, image.naturalHeight));
+  const canvas = document.createElement('canvas');
+  canvas.width = Math.max(1, Math.round(image.naturalWidth * scale));
+  canvas.height = Math.max(1, Math.round(image.naturalHeight * scale));
+
+  const context = canvas.getContext('2d');
+  if (!context) throw new Error('Could not prepare this image for upload.');
+
+  context.drawImage(image, 0, 0, canvas.width, canvas.height);
+
+  for (const quality of [0.82, 0.72, 0.62, 0.52]) {
+    const blob = await canvasToBlob(canvas, quality);
+
+    if (blob.size <= MAX_ANALYSIS_UPLOAD_BYTES) {
+      const filename = file.name.replace(/\.[^.]+$/, '') || 'food-photo';
+      return new File([blob], `${filename}.jpg`, { type: 'image/jpeg' });
+    }
+  }
+
+  throw new Error('Photo is too large for deployment upload. Crop it or take a closer photo.');
+};
 
 const ToggleChip = ({ active, danger, icon, label, onClick }) => (
   <button
@@ -297,8 +365,15 @@ export default function App() {
     setScanAnalysis({ status: 'loading', data: null, error: '' });
 
     try {
+      const uploadFile = await prepareImageForUpload(file);
+      const compressed = uploadFile !== file;
+      setScanSource({
+        type: 'photo',
+        name: compressed ? `${file.name} optimized for upload` : file.name
+      });
+
       const formData = new FormData();
-      formData.append('image', file);
+      formData.append('image', uploadFile, uploadFile.name || 'food-photo.jpg');
       formData.append('profile', JSON.stringify(profile));
 
       const response = await fetch(`${API_BASE_URL}/api/analyze`, {
@@ -474,21 +549,29 @@ export default function App() {
             </div>
 
             <div>
-              <label className="mb-3 flex items-center justify-between text-sm font-semibold text-slate-700">
+              <div className="mb-3 flex items-center justify-between gap-3 text-sm font-semibold text-slate-700">
                 <span>Spice tolerance</span>
                 <span className="text-orange-600">{spiceCaption}</span>
-              </label>
-              <input
-                type="range"
-                min="0"
-                max="5"
-                value={profile.spiceLevel}
-                onChange={event => setProfile({ ...profile, spiceLevel: parseInt(event.target.value, 10) })}
-                className="friendly-range w-full"
-              />
-              <div className="mt-2 flex justify-between text-xs text-slate-400">
-                <span>None</span>
-                <span>Local spicy</span>
+              </div>
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                {SPICE_LABELS.map((label, index) => {
+                  const active = profile.spiceLevel === index;
+
+                  return (
+                    <button
+                      key={label}
+                      type="button"
+                      aria-pressed={active}
+                      onClick={() => setProfile({ ...profile, spiceLevel: index })}
+                      className={`min-h-[4.25rem] rounded-lg border px-3 py-2 text-left transition-colors ${
+                        active ? 'border-orange-300 bg-orange-50 text-orange-700' : 'border-slate-200 bg-slate-50 text-slate-700 hover:bg-white'
+                      }`}
+                    >
+                      <span className="block text-sm font-bold">{label}</span>
+                      <span className="mt-1 block text-xs font-medium text-slate-500">{SPICE_HELP[index]}</span>
+                    </button>
+                  );
+                })}
               </div>
             </div>
           </div>

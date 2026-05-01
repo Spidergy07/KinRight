@@ -26,7 +26,7 @@ export const env = {
     apiKeys: geminiApiKeys,
     maxRetries: Math.min(parseNumber(process.env.MAX_GEMINI_RETRIES, 4), 4)
   },
-  maxUploadMb: parseNumber(process.env.MAX_UPLOAD_MB, 10)
+  maxUploadMb: parseNumber(process.env.MAX_UPLOAD_MB, 4)
 };
 
 export const getConfigStatus = () => ({

@@ -1,21 +1,22 @@
 # Deployment
 
-The frontend and backend can be deployed separately.
+The frontend and backend can be deployed together on Vercel, or separately if needed.
 
 ## Recommended MVP Setup
 
-- Frontend: Vercel, Netlify, Cloudflare Pages, or any static host.
-- Backend: Render, Railway, Fly.io, Google Cloud Run, or any Node host.
+- Frontend: Vercel static build from `dist`.
+- Backend: Vercel Functions from the `api/` directory.
 - Storage: Cloudinary free tier for temporary image processing.
 
-## Backend Environment
+This repo includes `vercel.json` with the Vite build command, `dist` output directory, and a 60-second function limit for image analysis.
 
-Set these on the backend host:
+## Vercel Environment
+
+Set these in the Vercel project environment variables:
 
 ```bash
 NODE_ENV=production
-PORT=3000
-CLIENT_ORIGIN=https://your-frontend-domain.com
+CLIENT_ORIGIN=https://your-project.vercel.app
 CLOUDINARY_CLOUD_NAME=...
 CLOUDINARY_API_KEY=...
 CLOUDINARY_API_SECRET=...
@@ -25,22 +26,27 @@ GEMINI_API_KEY_1=...
 GEMINI_API_KEY_2=...
 GEMINI_API_KEY_3=...
 GEMINI_API_KEY_4=...
-MAX_UPLOAD_MB=10
+MAX_UPLOAD_MB=4
 MAX_GEMINI_RETRIES=4
 ```
 
-Start command:
+For Vercel Functions, keep `MAX_UPLOAD_MB` at `4` or lower. The frontend resizes large mobile photos before upload so requests stay under the platform payload limit.
 
-```bash
-npm run start
-```
-
-## Frontend Environment
-
-Set this on the frontend host:
+If frontend and API are deployed in the same Vercel project, do not set `VITE_API_URL`; the app will call `/api` on the current domain. If the API is hosted somewhere else, set:
 
 ```bash
 VITE_API_URL=https://your-api-domain.com
+```
+
+## Deploy
+
+From GitHub, import the repository in Vercel and set the environment variables above.
+
+From CLI:
+
+```bash
+vercel
+vercel --prod
 ```
 
 Build command:

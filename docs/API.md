@@ -15,7 +15,7 @@ Returns service and config status without exposing secrets.
     "imageRetention": "deleted-after-analysis",
     "cloudinary": true,
     "geminiKeys": 4,
-    "maxUploadMb": 10
+    "maxUploadMb": 4
   }
 }
 ```

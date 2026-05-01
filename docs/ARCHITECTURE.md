@@ -25,7 +25,9 @@ If future versions need history, add it behind an explicit retention setting and
 
 ## Key Modules
 
-- `server/index.js`: Express app, CORS, health endpoint, error handler.
+- `server/app.js`: Express app, CORS, health endpoint, error handler.
+- `server/index.js`: local Node listener for development and non-Vercel Node hosting.
+- `api/`: Vercel Function entrypoints that reuse the Express app.
 - `server/config/env.js`: environment parsing and non-secret config status.
 - `server/routes/analysis.js`: upload validation, analysis response shape, cleanup.
 - `server/services/cloudinaryUpload.js`: upload/delete helpers.

@@ -32,6 +32,34 @@ const parseProfile = value => {
   }
 };
 
+const normalizeStrings = value =>
+  Array.isArray(value)
+    ? [...new Set(value.map(item => String(item || '').trim()).filter(Boolean))].slice(0, 12)
+    : [];
+
+const normalizeRisks = value => {
+  if (!Array.isArray(value)) return [];
+
+  const seen = new Set();
+
+  return value
+    .map(item => ({
+      name: String(item?.name || item?.type || 'other').trim().toLowerCase(),
+      type: item?.type ? String(item.type).trim().toLowerCase() : undefined,
+      confidence: Number(item?.confidence) || 0,
+      reason: String(item?.reason || '').trim()
+    }))
+    .filter(item => {
+      if (!item.name) return false;
+
+      const key = `${item.name}:${item.type || ''}:${item.reason}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    })
+    .slice(0, 8);
+};
+
 router.post('/analyze', upload.single('image'), async (request, response, next) => {
   let uploadedImage = null;
 
@@ -54,11 +82,11 @@ router.post('/analyze', upload.single('image'), async (request, response, next) 
         dishName: result.dishName || 'Unknown dish',
         thaiName: result.thaiName || '',
         confidence: Number(result.confidence) || 0,
-        detectedText: Array.isArray(result.detectedText) ? result.detectedText : [],
-        likelyIngredients: Array.isArray(result.likelyIngredients) ? result.likelyIngredients : [],
-        allergyRisks: Array.isArray(result.allergyRisks) ? result.allergyRisks : [],
-        dietaryRisks: Array.isArray(result.dietaryRisks) ? result.dietaryRisks : [],
-        suggestedQuestions: Array.isArray(result.suggestedQuestions) ? result.suggestedQuestions : [],
+        detectedText: normalizeStrings(result.detectedText),
+        likelyIngredients: normalizeStrings(result.likelyIngredients),
+        allergyRisks: normalizeRisks(result.allergyRisks),
+        dietaryRisks: normalizeRisks(result.dietaryRisks),
+        suggestedQuestions: normalizeStrings(result.suggestedQuestions),
         thaiOrderSuggestion: result.thaiOrderSuggestion || '',
         englishSummary: result.englishSummary || '',
         safeToOrder: Boolean(result.safeToOrder)
