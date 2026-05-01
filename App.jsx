@@ -539,21 +539,21 @@ export default function App() {
     }
 
     const warnings = [];
-    if (derivedProfile.allergies.peanut) warnings.push('แพ้ถั่วรุนแรง ห้ามใส่ถั่วเด็ดขาด');
-    if (derivedProfile.allergies.seafood) warnings.push('แพ้อาหารทะเล');
-    if (derivedProfile.allergies.gluten) warnings.push('แพ้กลูเตน/แป้งสาลี');
-    if (derivedProfile.dietary.vegan) warnings.push('กินเจ/มังสวิรัติ ไม่ใส่น้ำปลาและเนื้อสัตว์');
-    if (derivedProfile.dietary.halal) warnings.push('ไม่ใส่หมู');
-    if (profileInstructions) warnings.push(`โปรไฟล์อาหาร: ${profileInstructions}`);
+    if (derivedProfile.allergies.peanut) warnings.push('Severe peanut allergy. Strictly no peanuts.');
+    if (derivedProfile.allergies.seafood) warnings.push('Seafood allergy.');
+    if (derivedProfile.allergies.gluten) warnings.push('Gluten/Wheat allergy.');
+    if (derivedProfile.dietary.vegan) warnings.push('Vegan/Vegetarian. No fish sauce or meat.');
+    if (derivedProfile.dietary.halal) warnings.push('No pork.');
+    if (profileInstructions) warnings.push(`Dietary profile: ${profileInstructions}`);
     if (selectedAnalysis?.allergyRisks?.length) {
-      warnings.push(`AI เตือนว่าอาจมี ${selectedAnalysis.allergyRisks.map(risk => risk.name).join(', ')} กรุณาถามร้านก่อน`);
+      warnings.push(`AI warning: May contain ${selectedAnalysis.allergyRisks.map(risk => risk.name).join(', ')}. Please check with the restaurant first.`);
     }
     if (selectedAnalysis?.dietaryRisks?.length) {
-      warnings.push(`AI เตือนเรื่อง ${selectedAnalysis.dietaryRisks.map(risk => risk.name || risk.type).join(', ')} กรุณาถามร้านก่อน`);
+      warnings.push(`AI warning regarding ${selectedAnalysis.dietaryRisks.map(risk => risk.name || risk.type).join(', ')}. Please check with the restaurant first.`);
     }
 
     const note = customNote.trim();
-    const noteText = note ? ` (เพิ่มเติม: ${note})` : '';
+    const noteText = note ? ` (Additional request: ${note})` : '';
     const orderText = parts.join(' ');
     const warningText = warnings.length > 0 ? ` (${warnings.join(', ')})` : '';
 
