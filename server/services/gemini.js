@@ -20,7 +20,13 @@ const foodSchemaHint = `{
   "safeToOrder": false
 }`;
 
-const buildPrompt = profile => `You are an assistant for foreign travelers ordering Thai street food.
+const getTravelerInstructions = profile =>
+  typeof profile?.instructions === 'string' ? profile.instructions.trim() : '';
+
+const buildPrompt = profile => {
+  const travelerInstructions = getTravelerInstructions(profile);
+
+  return `You are an assistant for foreign travelers ordering Thai street food.
 Analyze this image of Thai food, a menu, or a street food stall.
 
 Known app dish IDs:
@@ -28,6 +34,9 @@ Known app dish IDs:
 - somtum: papaya salad / ส้มตำ
 - padthai: pad thai / ผัดไทย
 - unknown: use this if not confident
+
+System profile instruction from the traveler:
+${travelerInstructions || '(none)'}
 
 Traveler profile:
 ${JSON.stringify(profile || {}, null, 2)}
@@ -37,10 +46,13 @@ ${foodSchemaHint}
 
 Rules:
 - confidence must be 0 to 1.
+- Treat the system profile instruction as a hard safety constraint for allergies, diet, spice tolerance, and ingredient questions.
+- If the traveler instruction says they are allergic to something, flag related dishes as unsafe unless clearly absent.
 - If image is unclear, use dishId "unknown" and confidence below 0.5.
 - Be conservative with allergy and dietary risks.
 - thaiOrderSuggestion should be usable to show a vendor.
 - If the image looks like a menu, include visible menu text in detectedText.`;
+};
 
 const extractText = data => {
   const parts = data?.candidates?.[0]?.content?.parts || [];

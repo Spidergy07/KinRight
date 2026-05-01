@@ -29,14 +29,14 @@ Request type: `multipart/form-data`
 Fields:
 
 - `image`: required image file.
-- `profile`: optional JSON string with allergies, dietary preferences, and spice level.
+- `profile`: optional JSON string with allergies, dietary preferences, and a free-text `instructions` field. The instruction is treated as the traveler safety prompt for the analysis.
 
 Example:
 
 ```bash
 curl -X POST http://localhost:3000/api/analyze \
   -F "image=@/path/to/photo.jpg" \
-  -F 'profile={"allergies":{"peanut":true},"dietary":{"halal":true},"spiceLevel":2}'
+  -F 'profile={"allergies":{"peanut":true},"dietary":{"halal":true},"instructions":"แพ้กุ้ง และ ถั่ว กินเผ็ดไม่มาก"}'
 ```
 
 Response:

@@ -136,14 +136,6 @@ const PROFILE_GROUPS = {
   ]
 };
 
-const SPICE_OPTIONS = [
-  { value: 0, label: 'No chili', thai: 'ไม่เผ็ดเลย', note: 'No heat at all.' },
-  { value: 1, label: 'Less spicy', thai: 'เผ็ดนิดเดียว', note: 'Just a tiny kick.' },
-  { value: 2, label: 'Mild spicy', thai: 'เผ็ดน้อย', note: 'Easy for travelers.' },
-  { value: 3, label: 'Medium spicy', thai: 'เผ็ดกลาง', note: 'Balanced heat.' },
-  { value: 4, label: 'Very spicy', thai: 'เผ็ดมาก', note: 'Strong chili.' },
-  { value: 5, label: 'Thai spicy', thai: 'เผ็ดแบบไทย', note: 'Local-level heat.' }
-];
 const FOOD_LIST = Object.values(FOOD_DATABASE);
 const MAX_ANALYSIS_UPLOAD_BYTES = 3.8 * 1024 * 1024;
 const IMAGE_MAX_DIMENSION = 1600;
@@ -181,6 +173,30 @@ const getApiBaseUrl = () => {
 const API_BASE_URL = getApiBaseUrl();
 
 const titleCase = value => value.charAt(0).toUpperCase() + value.slice(1);
+
+const getProfileInstructions = profile => String(profile?.instructions || '').trim();
+
+const hasAny = (value, patterns) => patterns.some(pattern => pattern.test(value));
+
+const deriveProfileConstraints = profile => {
+  const instructions = getProfileInstructions(profile).toLowerCase();
+  const allergyContext = /แพ้|allerg|avoid|no |ไม่กิน|ห้าม|can't|cannot/i.test(instructions);
+
+  const allergies = {
+    peanut: Boolean(profile.allergies.peanut) || (allergyContext && hasAny(instructions, [/ถั่ว/i, /peanut/i])),
+    seafood:
+      Boolean(profile.allergies.seafood) ||
+      (allergyContext && hasAny(instructions, [/กุ้ง/i, /ปู/i, /หอย/i, /อาหารทะเล/i, /shrimp/i, /prawn/i, /crab/i, /shellfish/i, /seafood/i])),
+    gluten: Boolean(profile.allergies.gluten) || (allergyContext && hasAny(instructions, [/กลูเตน/i, /แป้งสาลี/i, /wheat/i, /gluten/i]))
+  };
+
+  const dietary = {
+    vegan: Boolean(profile.dietary.vegan) || hasAny(instructions, [/มังสวิรัติ/i, /กินเจ/i, /vegan/i, /vegetarian/i]),
+    halal: Boolean(profile.dietary.halal) || hasAny(instructions, [/ฮาลาล/i, /halal/i, /ไม่กินหมู/i, /ไม่เอาหมู/i, /no pork/i])
+  };
+
+  return { allergies, dietary, instructions: getProfileInstructions(profile) };
+};
 
 const BrandLockup = ({ compact = false }) => (
   <div className="flex items-center gap-3">
@@ -276,7 +292,7 @@ export default function App() {
   const [profile, setProfile] = useState({
     allergies: { peanut: false, seafood: false, gluten: false },
     dietary: { vegan: false, halal: false },
-    spiceLevel: 2
+    instructions: ''
   });
   const [selectedFood, setSelectedFood] = useState(null);
   const [orderState, setOrderState] = useState({});
@@ -294,13 +310,16 @@ export default function App() {
     const dietaryBadges = PROFILE_GROUPS.dietary
       .filter(item => profile.dietary[item.id])
       .map(item => ({ ...item, tone: 'safe' }));
+    const instructionBadge = getProfileInstructions(profile)
+      ? [{ id: 'instructions', label: 'Custom note', icon: '✎', tone: 'note' }]
+      : [];
 
-    return [...allergyBadges, ...dietaryBadges];
+    return [...allergyBadges, ...dietaryBadges, ...instructionBadge];
   }, [profile]);
 
-  const spiceChoice = SPICE_OPTIONS.find(option => option.value === profile.spiceLevel) || SPICE_OPTIONS[2];
-  const spiceCaption = spiceChoice.label;
-  const hasActiveAllergy = Object.values(profile.allergies).some(Boolean);
+  const derivedProfile = useMemo(() => deriveProfileConstraints(profile), [profile]);
+  const profileInstructions = derivedProfile.instructions;
+  const hasActiveAllergy = Object.values(derivedProfile.allergies).some(Boolean);
 
   const toggleProfile = (category, item) => {
     setProfile(prev => ({
@@ -347,7 +366,7 @@ export default function App() {
         .options.find(option => option.id === orderState.spice);
       summary.push(spiceOpt.label);
     } else {
-      summary.push(spiceChoice.label);
+      if (profileInstructions) summary.push(`Profile: ${profileInstructions}`);
     }
 
     const note = customNote.trim();
@@ -430,15 +449,16 @@ export default function App() {
         .options.find(option => option.id === orderState.spice);
       parts.push(spiceOpt.thai);
     } else {
-      parts.push(spiceChoice.thai);
+      if (profileInstructions) parts.push(profileInstructions);
     }
 
     const warnings = [];
-    if (profile.allergies.peanut) warnings.push('แพ้ถั่วรุนแรง ห้ามใส่ถั่วเด็ดขาด');
-    if (profile.allergies.seafood) warnings.push('แพ้อาหารทะเล');
-    if (profile.allergies.gluten) warnings.push('แพ้กลูเตน/แป้งสาลี');
-    if (profile.dietary.vegan) warnings.push('กินเจ/มังสวิรัติ ไม่ใส่น้ำปลาและเนื้อสัตว์');
-    if (profile.dietary.halal) warnings.push('ไม่ใส่หมู');
+    if (derivedProfile.allergies.peanut) warnings.push('แพ้ถั่วรุนแรง ห้ามใส่ถั่วเด็ดขาด');
+    if (derivedProfile.allergies.seafood) warnings.push('แพ้อาหารทะเล');
+    if (derivedProfile.allergies.gluten) warnings.push('แพ้กลูเตน/แป้งสาลี');
+    if (derivedProfile.dietary.vegan) warnings.push('กินเจ/มังสวิรัติ ไม่ใส่น้ำปลาและเนื้อสัตว์');
+    if (derivedProfile.dietary.halal) warnings.push('ไม่ใส่หมู');
+    if (profileInstructions) warnings.push(`โปรไฟล์อาหาร: ${profileInstructions}`);
 
     const note = customNote.trim();
     const noteText = note ? ` (เพิ่มเติม: ${note})` : '';
@@ -463,11 +483,11 @@ export default function App() {
   };
 
   const isOptionSafe = option => {
-    if (profile.allergies.peanut && option.tags.includes('peanut')) return false;
-    if (profile.allergies.seafood && option.tags.includes('seafood')) return false;
-    if (profile.allergies.gluten && option.tags.includes('gluten')) return false;
-    if (profile.dietary.vegan && (option.tags.includes('pork') || option.tags.includes('beef') || option.tags.includes('seafood'))) return false;
-    if (profile.dietary.halal && option.tags.includes('pork')) return false;
+    if (derivedProfile.allergies.peanut && option.tags.includes('peanut')) return false;
+    if (derivedProfile.allergies.seafood && option.tags.includes('seafood')) return false;
+    if (derivedProfile.allergies.gluten && option.tags.includes('gluten')) return false;
+    if (derivedProfile.dietary.vegan && (option.tags.includes('pork') || option.tags.includes('beef') || option.tags.includes('seafood'))) return false;
+    if (derivedProfile.dietary.halal && option.tags.includes('pork')) return false;
     return true;
   };
 
@@ -477,7 +497,11 @@ export default function App() {
         <span
           key={`${badge.tone}-${badge.id}`}
           className={`inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-semibold ${
-            badge.tone === 'danger' ? 'bg-red-50 text-red-700 ring-1 ring-red-100' : 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100'
+            badge.tone === 'danger'
+              ? 'bg-red-50 text-red-700 ring-1 ring-red-100'
+              : badge.tone === 'note'
+                ? 'bg-orange-50 text-orange-700 ring-1 ring-orange-100'
+                : 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100'
           }`}
         >
           <span>{badge.icon}</span>
@@ -560,33 +584,19 @@ export default function App() {
               </div>
             </div>
 
-            <div>
-              <div className="mb-3 flex items-center justify-between gap-3 text-sm font-semibold text-slate-700">
-                <span>Spice preference</span>
-                <span className="text-orange-600">{spiceCaption}</span>
-              </div>
-              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-                {SPICE_OPTIONS.map(option => {
-                  const active = profile.spiceLevel === option.value;
-
-                  return (
-                    <button
-                      key={option.value}
-                      type="button"
-                      aria-pressed={active}
-                      onClick={() => setProfile({ ...profile, spiceLevel: option.value })}
-                      className={`min-h-[4.25rem] rounded-lg border px-3 py-2 text-left transition-colors ${
-                        active ? 'border-orange-300 bg-orange-50 text-orange-700' : 'border-slate-200 bg-slate-50 text-slate-700 hover:bg-white'
-                      }`}
-                    >
-                      <span className="block text-sm font-bold">{option.label}</span>
-                      <span className="mt-1 block text-sm font-semibold text-slate-600">{option.thai}</span>
-                      <span className="mt-1 block text-xs font-medium text-slate-500">{option.note}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
+            <label className="block">
+              <span className="mb-2 block text-sm font-semibold text-slate-700">Food instruction</span>
+              <textarea
+                value={profile.instructions}
+                onChange={event => setProfile({ ...profile, instructions: event.target.value })}
+                rows={4}
+                placeholder="แพ้กุ้ง และ ถั่ว กินเผ็ดไม่มาก"
+                className="min-h-28 w-full resize-none rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-base font-semibold leading-6 text-slate-900 outline-none transition-colors placeholder:text-slate-400 focus:border-orange-300 focus:bg-white"
+              />
+              <span className="mt-2 block text-xs font-medium leading-5 text-slate-500">
+                This is used for every scan and every generated Thai order.
+              </span>
+            </label>
           </div>
         </section>
       </div>
@@ -798,11 +808,22 @@ export default function App() {
               </div>
             )}
 
-            {FOOD_DATABASE[scanAnalysis.data.analysis.dishId] ? (
-              <button type="button" onClick={() => startOrdering(scanAnalysis.data.analysis.dishId)} className="primary-button mt-4">
-                Use this result <ArrowRight className="h-4 w-4" />
+            <div className="mt-4 grid gap-3 sm:grid-cols-2">
+              <button type="button" onClick={() => setView('onboarding')} className="secondary-button w-full">
+                Edit profile
               </button>
-            ) : (
+              {FOOD_DATABASE[scanAnalysis.data.analysis.dishId] ? (
+                <button type="button" onClick={() => startOrdering(scanAnalysis.data.analysis.dishId)} className="primary-button">
+                  Use result <ArrowRight className="h-4 w-4" />
+                </button>
+              ) : (
+                <button type="button" onClick={() => setView('home')} className="primary-button">
+                  Choose manually <ArrowRight className="h-4 w-4" />
+                </button>
+              )}
+            </div>
+
+            {!FOOD_DATABASE[scanAnalysis.data.analysis.dishId] && (
               <p className="mt-3 text-sm text-slate-500">Not confident enough. Choose manually below.</p>
             )}
           </div>
@@ -1032,7 +1053,10 @@ export default function App() {
           </button>
         </div>
 
-        <div className="p-5 pb-[max(1rem,env(safe-area-inset-bottom))] text-center sm:p-6">
+        <div className="grid gap-3 p-5 pb-[max(1rem,env(safe-area-inset-bottom))] sm:grid-cols-2 sm:p-6">
+          <button type="button" onClick={() => setView('onboarding')} className="secondary-button w-full">
+            Edit profile
+          </button>
           <button
             type="button"
             onClick={() => {
@@ -1042,7 +1066,7 @@ export default function App() {
               setCurrentStepIndex(0);
               setCustomNote('');
             }}
-            className="font-semibold text-orange-600"
+            className="primary-button"
           >
             Start new order
           </button>
