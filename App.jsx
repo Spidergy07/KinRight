@@ -640,7 +640,7 @@ export default function App() {
                 value={profile.instructions}
                 onChange={event => setProfile({ ...profile, instructions: event.target.value })}
                 rows={4}
-                placeholder="แพ้กุ้ง และ ถั่ว กินเผ็ดไม่มาก"
+                placeholder="Allergic to shrimp and peanuts, mild spice only"
                 className="min-h-28 w-full resize-none rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-base font-semibold leading-6 text-slate-900 outline-none transition-colors placeholder:text-slate-400 focus:border-orange-300 focus:bg-white"
               />
               <span className="mt-2 block text-xs font-medium leading-5 text-slate-500">
