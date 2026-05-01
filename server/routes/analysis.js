@@ -60,29 +60,6 @@ const normalizeRisks = value => {
     .slice(0, 8);
 };
 
-const normalizeRecommendedDishes = value => {
-  if (!Array.isArray(value)) return [];
-
-  const seen = new Set();
-
-  return value
-    .map(item => ({
-      name: String(item?.name || '').trim(),
-      thai: String(item?.thai || '').trim(),
-      sharedIngredients: normalizeStrings(item?.sharedIngredients).slice(0, 6),
-      reason: String(item?.reason || '').trim()
-    }))
-    .filter(item => {
-      if (!item.name && !item.thai) return false;
-
-      const key = `${item.name}:${item.thai}`.toLowerCase();
-      if (seen.has(key)) return false;
-      seen.add(key);
-      return true;
-    })
-    .slice(0, 5);
-};
-
 const mergeRisks = value => {
   const merged = new Map();
 
@@ -221,6 +198,43 @@ const buildThaiOrderSuggestion = (result, constraints) => {
   return merged.join(' ').trim();
 };
 
+const normalizeOrderOptions = value =>
+  Array.isArray(value)
+    ? value
+        .map(item => ({
+          label: String(item?.label || '').trim(),
+          thai: String(item?.thai || '').trim()
+        }))
+        .filter(item => item.label || item.thai)
+        .slice(0, 8)
+    : [];
+
+const normalizeOrderInterface = value => {
+  if (!value || typeof value !== 'object') return null;
+
+  const type = value.type === 'simple' ? 'simple' : 'customizable';
+  const steps = Array.isArray(value.steps)
+    ? value.steps
+        .map(step => ({
+          step: String(step?.step || '').trim(),
+          thaiStep: String(step?.thaiStep || '').trim(),
+          options: normalizeOrderOptions(step?.options)
+        }))
+        .filter(step => (step.step || step.thaiStep) && step.options.length > 0)
+        .slice(0, 4)
+    : [];
+
+  return {
+    type,
+    dish: String(value.dish || '').trim(),
+    thaiDish: String(value.thaiDish || '').trim(),
+    steps: type === 'customizable' ? steps : [],
+    options: type === 'simple' ? normalizeOrderOptions(value.options) : [],
+    safetyWarnings: normalizeStrings(value.safetyWarnings),
+    suggestedThaiOrderTemplate: String(value.suggestedThaiOrderTemplate || '').trim()
+  };
+};
+
 router.post('/analyze', upload.single('image'), async (request, response, next) => {
   let uploadedImage = null;
 
@@ -253,7 +267,7 @@ router.post('/analyze', upload.single('image'), async (request, response, next) 
         suggestedQuestions: normalizeStrings([...(Array.isArray(result.suggestedQuestions) ? result.suggestedQuestions : []), ...profileQuestions(constraints)]),
         thaiOrderSuggestion: buildThaiOrderSuggestion(result, constraints),
         englishSummary: result.englishSummary || '',
-        recommendedDishes: normalizeRecommendedDishes(result.recommendedDishes),
+        orderInterface: normalizeOrderInterface(result.orderInterface),
         safeToOrder: Boolean(result.safeToOrder) && allergyRisks.length === 0 && dietaryRisks.length === 0
       },
       meta: {
