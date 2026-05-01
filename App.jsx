@@ -564,9 +564,23 @@ export default function App() {
     };
   };
 
+  const buildRecommendationOrder = rec => {
+    const thai = String(rec?.thai || '').trim();
+    const name = String(rec?.name || '').trim();
+    const main = thai || name || 'Recommended dish';
+
+    return {
+      main,
+      warning: '',
+      full: thai ? `\u0e02\u0e2d${thai}` : main
+    };
+  };
+
   const speakText = text => {
-    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-      const utterance = new SpeechSynthesisUtterance(text);
+    const speechText = String(text || '').trim();
+
+    if (speechText && typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      const utterance = new SpeechSynthesisUtterance(speechText);
       const thaiVoice = getThaiSpeechVoice();
 
       utterance.lang = 'th-TH';
@@ -1047,7 +1061,7 @@ export default function App() {
     if (!selectedFood) return null;
 
     const orderData = recommendation 
-      ? { main: recommendation.thai, warning: '', full: recommendation.thai }
+      ? buildRecommendationOrder(recommendation)
       : generateThaiOrder();
 
     return (
