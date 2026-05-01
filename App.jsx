@@ -415,7 +415,7 @@ export default function App() {
       name: rec.name || baseFood.name,
       thaiBase: rec.thai || baseFood.thaiBase
     });
-    setOrderState(buildOrderStateFromText(baseFood, [rec.name, rec.thai]));
+    setOrderState(buildOrderStateFromText(baseFood, [rec.name, rec.thai, rec.reason, ...(rec.sharedIngredients || [])]));
     setCurrentStepIndex(0);
     setCustomNote('');
     setShowAllergyModal(false);
@@ -878,6 +878,16 @@ export default function App() {
                       <div className="min-w-0">
                         <p className="font-bold text-slate-900">{rec.name}</p>
                         <p className="text-xs text-slate-500">{rec.thai} • Customize before ordering</p>
+                        {rec.sharedIngredients?.length > 0 && (
+                          <div className="mt-2 flex flex-wrap gap-1.5">
+                            {rec.sharedIngredients.map(ingredient => (
+                              <span key={ingredient} className="rounded-md bg-orange-50 px-2 py-0.5 text-[11px] font-semibold text-orange-700">
+                                {ingredient}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                        {rec.reason && <p className="mt-2 text-xs leading-5 text-slate-500">{rec.reason}</p>}
                       </div>
                       <ArrowRight className="h-4 w-4 text-slate-300" />
                     </button>
