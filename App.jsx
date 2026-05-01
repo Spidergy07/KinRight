@@ -815,6 +815,18 @@ export default function App() {
               )}
             </div>
 
+            {scanAnalysis.data.analysis.suggestedQuestions?.length > 0 && (
+              <div className="mt-5 rounded-lg border border-slate-200 bg-slate-50 p-3">
+                <p className="text-xs font-bold uppercase tracking-wide text-slate-400">Ask vendor</p>
+                <div className="mt-2 space-y-2">
+                  {scanAnalysis.data.analysis.suggestedQuestions.map(question => (
+                    <p key={question} className="text-sm font-semibold leading-5 text-slate-700">
+                      {question}
+                    </p>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         )}
 
@@ -1013,6 +1025,19 @@ export default function App() {
             <Volume2 className="h-6 w-6" />
             Play Thai audio
           </button>
+
+          {selectedAnalysis?.suggestedQuestions?.length > 0 && (
+            <div className="rounded-lg border border-slate-200 bg-white p-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Ask vendor</p>
+              <div className="mt-2 space-y-2">
+                {selectedAnalysis.suggestedQuestions.map(question => (
+                  <p key={question} className="text-sm font-semibold leading-5 text-slate-700">
+                    {question}
+                  </p>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="grid gap-3 p-5 pb-[max(1rem,env(safe-area-inset-bottom))] sm:p-6">
