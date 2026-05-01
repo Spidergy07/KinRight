@@ -17,7 +17,15 @@ const foodSchemaHint = `{
   "suggestedQuestions": ["short question a traveler should ask vendor"],
   "thaiOrderSuggestion": "natural Thai order sentence",
   "englishSummary": "short English summary",
-  "recommendedDishes": [{"name": "Dish name in English", "thai": "ชื่อเมนูในภาษาไทย", "sharedIngredients": ["ingredient also found in detected dish"], "reason": "short reason focused on similar ingredients"}],
+  "orderInterface": {
+    "type": "customizable | simple",
+    "dish": "detected dish in English",
+    "thaiDish": "ชื่อเมนูภาษาไทย",
+    "steps": [{"step": "step name", "thaiStep": "ชื่อขั้นตอนภาษาไทย", "options": [{"label": "option in English", "thai": "ตัวเลือกภาษาไทย"}]}],
+    "options": [{"label": "standard order", "thai": "ประโยคสั่งภาษาไทย"}],
+    "safetyWarnings": ["short warning"],
+    "suggestedThaiOrderTemplate": "Thai order template using choices"
+  },
   "safeToOrder": false
 }`;
 
@@ -52,9 +60,11 @@ Rules:
 - If image is unclear, use dishId "unknown" and confidence below 0.5.
 - Be conservative with allergy and dietary risks.
 - thaiOrderSuggestion should be usable to show a vendor.
-- recommendedDishes must prioritize dishes with similar core ingredients, protein, noodles/rice, broth/sauce, herbs, or cooking style, not just popular dishes.
-- For every recommended dish, include sharedIngredients and a short reason explaining the ingredient similarity.
-- If the image contains a dish that is NOT one of the known app dish IDs, identify it accurately in dishName and thaiName, and provide 2-3 ingredient-similar Thai dishes in recommendedDishes.
+- Generate orderInterface for the detected food only. Do not generate alternative recommendations.
+- If the food normally needs choices, use orderInterface.type "customizable" with max 3-4 realistic Thai street food steps.
+- If the food is simple, such as grilled sausage, skewers, or fried snacks, use orderInterface.type "simple" and do not generate steps.
+- Never include orderInterface options that violate the traveler profile instruction.
+- Keep orderInterface concise and focused on how the dish is actually ordered in Thailand.
 - If the image looks like a menu, include visible menu text in detectedText.`;
 };
 
