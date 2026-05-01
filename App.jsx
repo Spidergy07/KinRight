@@ -279,6 +279,7 @@ export default function App() {
     if (!food) return;
 
     setSelectedFood(food);
+    setRecommendation(null);
     
     const initialState = {};
     if (analysis?.likelyIngredients) {
@@ -313,12 +314,6 @@ export default function App() {
 
   const selectOption = (stepId, optionId) => {
     setOrderState(prev => ({ ...prev, [stepId]: optionId }));
-
-    if (currentStepIndex < selectedFood.steps.length - 1) {
-      setTimeout(() => setCurrentStepIndex(prev => prev + 1), 220);
-    } else {
-      setTimeout(() => finishOrder(), 220);
-    }
   };
 
   const getEnglishSummary = () => {
@@ -734,7 +729,7 @@ export default function App() {
                   Use result <ArrowRight className="h-4 w-4" />
                 </button>
               ) : (
-                <button type="button" onClick={() => setView('home')} className="primary-button">
+                <button type="button" onClick={() => document.getElementById('manual-food-choices')?.scrollIntoView({ behavior: 'smooth', block: 'start' })} className="primary-button">
                   Choose manually <ArrowRight className="h-4 w-4" />
                 </button>
               )}
@@ -763,6 +758,30 @@ export default function App() {
             )}
           </div>
         )}
+
+        <section id="manual-food-choices" className="mt-6">
+          <div className="mb-3">
+            <h2 className="text-sm font-bold text-slate-950">Choose manually</h2>
+            <p className="mt-1 text-sm leading-5 text-slate-500">Pick a dish, choose options, then show or play the Thai sentence.</p>
+          </div>
+          <div className="space-y-2">
+            {FOOD_LIST.map(food => (
+              <button
+                key={food.id}
+                type="button"
+                onClick={() => startOrdering(food.id)}
+                className="flex w-full items-center gap-3 rounded-lg border border-slate-200 bg-white p-3 text-left transition-colors hover:bg-slate-50"
+              >
+                <span className={`grid h-11 w-11 shrink-0 place-items-center rounded-lg ${food.accent.bg} text-2xl`}>{food.image}</span>
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate font-semibold text-slate-950">{food.name}</span>
+                  <span className="text-xs text-slate-400">Build Thai order sentence</span>
+                </span>
+                <ArrowRight className="h-4 w-4 text-slate-300" />
+              </button>
+            ))}
+          </div>
+        </section>
 
       </div>
     </div>
@@ -867,6 +886,17 @@ export default function App() {
             <button type="button" disabled={currentStepIndex === 0} onClick={() => setCurrentStepIndex(prev => prev - 1)} className="secondary-button w-full disabled:opacity-40">
               Back
             </button>
+            <button
+              type="button"
+              disabled={!orderState[currentStep.id]}
+              onClick={() => {
+                if (isLastStep) finishOrder();
+                else setCurrentStepIndex(prev => prev + 1);
+              }}
+              className="primary-button flex-1 disabled:bg-slate-300 disabled:shadow-none"
+            >
+              {isLastStep ? 'Generate Thai order' : 'Next'}
+            </button>
           </div>
         </div>
 
@@ -914,7 +944,7 @@ export default function App() {
     return (
       <div className="soft-canvas flex h-full min-h-0 flex-col animate-in fade-in duration-200">
         <header className="flex items-center justify-between border-b border-slate-200 bg-white/90 p-5 pt-[max(1rem,env(safe-area-inset-top))] backdrop-blur sm:p-6">
-          <button type="button" aria-label="Back to order" onClick={() => setView('ordering')} className="icon-button">
+          <button type="button" aria-label="Back to order" onClick={() => setView(recommendation ? 'scanning' : 'ordering')} className="icon-button">
             <ChevronLeft className="h-6 w-6" />
           </button>
           <span className="font-bold text-slate-950">Your order</span>
