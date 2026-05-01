@@ -708,15 +708,9 @@ export default function App() {
   const renderScanning = () => (
     <div className="flex h-full min-h-0 flex-col bg-slate-50 animate-in fade-in duration-200">
       <header className="border-b border-slate-200 bg-white px-5 pb-4 pt-[max(1.25rem,env(safe-area-inset-top))] sm:px-6 sm:pt-8">
-        <div className="flex items-center justify-between gap-3">
-          <button type="button" aria-label="Back to home" onClick={() => setView('home')} className="secondary-button min-h-10 px-3 py-2">
-            <ChevronLeft className="h-6 w-6" />
-            Home
-          </button>
-          <div className="min-w-0 text-center">
-            <p className="text-base font-bold text-slate-950">Scan food or menu</p>
-            <p className="truncate text-xs text-slate-400">{API_BASE_URL}</p>
-          </div>
+        <div className="grid grid-cols-[2.5rem_1fr_2.5rem] items-center gap-3">
+          <div />
+          <p className="text-center text-base font-bold text-slate-950">Scan food or menu</p>
           <label className="icon-button cursor-pointer">
             <span className="sr-only">Take or upload photo</span>
             <ImageIcon className="h-5 w-5" />
