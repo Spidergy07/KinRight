@@ -287,6 +287,8 @@ export default function App() {
 
     if (currentStepIndex < selectedFood.steps.length - 1) {
       setTimeout(() => setCurrentStepIndex(prev => prev + 1), 220);
+    } else {
+      setTimeout(() => finishOrder(), 220);
     }
   };
 
@@ -724,26 +726,6 @@ export default function App() {
           </div>
         )}
 
-        <section className="mt-6">
-          <h2 className="mb-3 text-sm font-bold text-slate-950">Manual fallback</h2>
-          <div className="space-y-2">
-            {FOOD_LIST.map(food => (
-              <button
-                key={food.id}
-                type="button"
-                onClick={() => startOrdering(food.id)}
-                className="flex w-full items-center gap-3 rounded-lg border border-slate-200 bg-white p-3 text-left transition-colors hover:bg-slate-50"
-              >
-                <span className={`grid h-11 w-11 shrink-0 place-items-center rounded-lg ${food.accent.bg} text-2xl`}>{food.image}</span>
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate font-semibold text-slate-950">{food.name}</span>
-                  <span className="text-xs text-slate-400">Choose manually</span>
-                </span>
-                <ArrowRight className="h-4 w-4 text-slate-300" />
-              </button>
-            ))}
-          </div>
-        </section>
       </div>
     </div>
   );
@@ -769,11 +751,6 @@ export default function App() {
               <h2 className="truncate text-lg font-bold text-slate-950">{selectedFood.name}</h2>
             </div>
             <div className={`grid h-11 w-11 shrink-0 place-items-center rounded-lg ${selectedFood.accent.bg} text-2xl`}>{selectedFood.image}</div>
-          </div>
-          <div className="mt-4 flex gap-1.5">
-            {selectedFood.steps.map((_, index) => (
-              <div key={index} className={`h-1.5 flex-1 rounded-full ${index <= currentStepIndex ? 'bg-orange-500' : 'bg-slate-200'}`} />
-            ))}
           </div>
         </header>
 
@@ -849,19 +826,8 @@ export default function App() {
           )}
 
           <div className="flex gap-3">
-            <button type="button" disabled={currentStepIndex === 0} onClick={() => setCurrentStepIndex(prev => prev - 1)} className="secondary-button disabled:opacity-40">
+            <button type="button" disabled={currentStepIndex === 0} onClick={() => setCurrentStepIndex(prev => prev - 1)} className="secondary-button w-full disabled:opacity-40">
               Back
-            </button>
-            <button
-              type="button"
-              disabled={!orderState[currentStep.id]}
-              onClick={() => {
-                if (isLastStep) finishOrder();
-                else setCurrentStepIndex(prev => prev + 1);
-              }}
-              className="primary-button flex-1 disabled:bg-slate-300 disabled:shadow-none"
-            >
-              {isLastStep ? 'Generate order' : 'Next'}
             </button>
           </div>
         </div>
@@ -912,9 +878,7 @@ export default function App() {
             <ChevronLeft className="h-6 w-6" />
           </button>
           <span className="font-bold text-slate-950">Your order</span>
-          <button type="button" aria-label="Play Thai audio" onClick={() => speakText(orderData.full)} className="icon-button">
-            <Volume2 className="h-5 w-5" />
-          </button>
+          <div className="w-10" /> {/* Spacer to keep title centered if needed, or just leave empty */}
         </header>
 
         <div className="flex min-h-0 flex-1 flex-col justify-center gap-5 overflow-y-auto p-5 sm:p-6">
@@ -948,10 +912,7 @@ export default function App() {
           </button>
         </div>
 
-        <div className="grid gap-3 p-5 pb-[max(1rem,env(safe-area-inset-bottom))] sm:grid-cols-2 sm:p-6">
-          <button type="button" onClick={() => setView('onboarding')} className="secondary-button w-full">
-            Edit profile
-          </button>
+        <div className="grid gap-3 p-5 pb-[max(1rem,env(safe-area-inset-bottom))] sm:p-6">
           <button
             type="button"
             onClick={() => {
