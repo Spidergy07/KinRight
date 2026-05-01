@@ -230,6 +230,7 @@ router.post('/analyze', upload.single('image'), async (request, response, next) 
         suggestedQuestions: normalizeStrings([...(Array.isArray(result.suggestedQuestions) ? result.suggestedQuestions : []), ...profileQuestions(constraints)]),
         thaiOrderSuggestion: buildThaiOrderSuggestion(result, constraints),
         englishSummary: result.englishSummary || '',
+        recommendedDishes: Array.isArray(result.recommendedDishes) ? result.recommendedDishes : [],
         safeToOrder: Boolean(result.safeToOrder) && allergyRisks.length === 0 && dietaryRisks.length === 0
       },
       meta: {

@@ -268,6 +268,7 @@ export default function App() {
   const [scanSource, setScanSource] = useState({ type: 'camera', name: '' });
   const [scanPreviewUrl, setScanPreviewUrl] = useState('');
   const [scanAnalysis, setScanAnalysis] = useState({ status: 'idle', data: null, error: '' });
+  const [recommendation, setRecommendation] = useState(null);
 
   const derivedProfile = useMemo(() => deriveProfileConstraints(profile), [profile]);
   const profileInstructions = derivedProfile.instructions;
@@ -297,6 +298,17 @@ export default function App() {
     setCustomNote('');
     setShowAllergyModal(false);
     setView('ordering');
+  };
+
+  const useRecommendation = (rec) => {
+    setRecommendation(rec);
+    setSelectedFood({
+      name: rec.name,
+      thaiBase: rec.thai,
+      image: '🍽️',
+      accent: { bg: 'bg-slate-50', text: 'text-slate-700' }
+    });
+    setView('result');
   };
 
   const selectOption = (stepId, optionId) => {
@@ -556,30 +568,8 @@ export default function App() {
         <div className="mb-5 flex flex-wrap gap-2">{renderProfileBadges()}</div>
 
         <section className="mb-7">
-          <div className="mb-3">
-            <h2 className="text-base font-bold text-slate-950">Quick manual order</h2>
-            <p className="mt-1 text-sm leading-5 text-slate-500">Use this when the photo is unclear or the vendor is waiting.</p>
-          </div>
-
-          <div className="grid gap-2">
-            {FOOD_LIST.map(food => (
-              <button
-                key={food.id}
-                type="button"
-                onClick={() => startOrdering(food.id)}
-                className="flex w-full items-center gap-3 rounded-lg border border-slate-200 bg-white p-3 text-left transition-colors hover:bg-slate-50"
-              >
-                <span className={`grid h-11 w-11 shrink-0 place-items-center rounded-lg ${food.accent.bg} text-2xl`}>{food.image}</span>
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate text-sm font-bold text-slate-900">{food.name}</span>
-                  <span className="block truncate text-xs text-slate-500">{food.description}</span>
-                </span>
-                <ArrowRight className="h-4 w-4 shrink-0 text-slate-300" />
-              </button>
-            ))}
-          </div>
+          {/* Manual order removed as requested */}
         </section>
-
       </div>
 
       <div className="pointer-events-none absolute bottom-[max(1rem,env(safe-area-inset-bottom))] left-0 right-0 px-5">
@@ -750,11 +740,27 @@ export default function App() {
               )}
             </div>
 
-            {!FOOD_DATABASE[scanAnalysis.data.analysis.dishId] && (
-              <p className="mt-3 text-sm text-slate-500">Not confident enough. Choose manually below.</p>
+            {scanAnalysis.data.analysis.recommendedDishes?.length > 0 && (
+              <div className="mt-6 border-t border-slate-100 pt-5">
+                <p className="mb-3 text-xs font-bold uppercase tracking-wide text-slate-400">Alternative recommendations</p>
+                <div className="grid gap-2">
+                  {scanAnalysis.data.analysis.recommendedDishes.map((rec, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => useRecommendation(rec)}
+                      className="flex w-full items-center justify-between gap-3 rounded-lg border border-slate-200 bg-white p-3 text-left transition-colors hover:bg-slate-50"
+                    >
+                      <div className="min-w-0">
+                        <p className="font-bold text-slate-900">{rec.name}</p>
+                        <p className="text-xs text-slate-500">{rec.thai}</p>
+                      </div>
+                      <ArrowRight className="h-4 w-4 text-slate-300" />
+                    </button>
+                  ))}
+                </div>
+              </div>
             )}
-          </div>
-        )}
 
       </div>
     </div>
@@ -899,7 +905,9 @@ export default function App() {
   const renderResult = () => {
     if (!selectedFood) return null;
 
-    const orderData = generateThaiOrder();
+    const orderData = recommendation 
+      ? { main: recommendation.thai, warning: '', full: recommendation.thai }
+      : generateThaiOrder();
 
     return (
       <div className="soft-canvas flex h-full min-h-0 flex-col animate-in fade-in duration-200">
@@ -932,7 +940,7 @@ export default function App() {
             <div className={`grid h-12 w-12 place-items-center rounded-lg ${selectedFood.accent.bg} text-2xl`}>{selectedFood.image}</div>
             <div className="min-w-0">
               <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">English check</p>
-              <p className="mt-1 font-semibold leading-5 text-slate-800">{getEnglishSummary()}</p>
+              <p className="mt-1 font-semibold leading-5 text-slate-800">{recommendation ? recommendation.name : getEnglishSummary()}</p>
             </div>
           </div>
 
@@ -951,6 +959,7 @@ export default function App() {
               setOrderState({});
               setCurrentStepIndex(0);
               setCustomNote('');
+              setRecommendation(null);
             }}
             className="primary-button"
           >

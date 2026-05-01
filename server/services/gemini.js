@@ -17,6 +17,7 @@ const foodSchemaHint = `{
   "suggestedQuestions": ["short question a traveler should ask vendor"],
   "thaiOrderSuggestion": "natural Thai order sentence",
   "englishSummary": "short English summary",
+  "recommendedDishes": [{"name": "Dish name in English", "thai": "ชื่อเมนูในภาษาไทย"}],
   "safeToOrder": false
 }`;
 
@@ -51,6 +52,7 @@ Rules:
 - If image is unclear, use dishId "unknown" and confidence below 0.5.
 - Be conservative with allergy and dietary risks.
 - thaiOrderSuggestion should be usable to show a vendor.
+- If the image contains a dish that is NOT one of the known app dish IDs, identify it accurately in dishName and thaiName, and provide 2-3 similar or related dishes in recommendedDishes.
 - If the image looks like a menu, include visible menu text in detectedText.`;
 };
 
