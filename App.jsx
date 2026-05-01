@@ -391,15 +391,21 @@ export default function App() {
   };
 
   const useRecommendation = rec => {
-    const foodId = inferFoodId(`${rec.name} ${rec.thai}`);
+    const recName = rec.dish || rec.name || '';
+    const recThai = rec.thaiDish || rec.thai || '';
+    const recOptions = Array.isArray(rec.options) ? rec.options : [];
+    const recStepText = Array.isArray(rec.steps)
+      ? rec.steps.flatMap(step => [step.step, ...(step.options || [])])
+      : [];
+    const foodId = inferFoodId(`${recName} ${recThai}`);
     const baseFood = FOOD_DATABASE[foodId];
 
     if (!baseFood) {
       setRecommendation(rec);
       setSelectedAnalysis(null);
       setSelectedFood({
-        name: rec.name,
-        thaiBase: rec.thai,
+        name: recName,
+        thaiBase: recThai,
         image: '🍽️',
         accent: { bg: 'bg-slate-50', text: 'text-slate-700' },
         steps: []
@@ -412,10 +418,10 @@ export default function App() {
     setSelectedAnalysis(null);
     setSelectedFood({
       ...baseFood,
-      name: rec.name || baseFood.name,
-      thaiBase: rec.thai || baseFood.thaiBase
+      name: recName || baseFood.name,
+      thaiBase: recThai || baseFood.thaiBase
     });
-    setOrderState(buildOrderStateFromText(baseFood, [rec.name, rec.thai, rec.reason, ...(rec.sharedIngredients || [])]));
+    setOrderState(buildOrderStateFromText(baseFood, [recName, recThai, rec.reason, ...recOptions, ...recStepText, ...(rec.sharedIngredients || [])]));
     setCurrentStepIndex(0);
     setCustomNote('');
     setShowAllergyModal(false);
@@ -582,9 +588,10 @@ export default function App() {
   };
 
   const buildRecommendationOrder = rec => {
-    const thai = String(rec?.thai || '').trim();
-    const name = String(rec?.name || '').trim();
-    const main = thai || name || 'Recommended dish';
+    const thai = String(rec?.thaiDish || rec?.thai || '').trim();
+    const name = String(rec?.dish || rec?.name || '').trim();
+    const standardOrder = Array.isArray(rec?.options) ? rec.options.find(Boolean) : '';
+    const main = thai || standardOrder || name || 'Recommended dish';
 
     return {
       main,
@@ -884,16 +891,31 @@ export default function App() {
                       className="flex w-full items-center justify-between gap-3 rounded-lg border border-slate-200 bg-white p-3 text-left transition-colors hover:bg-slate-50"
                     >
                       <div className="min-w-0">
-                        <p className="font-bold text-slate-900">{rec.name}</p>
-                        <p className="text-xs text-slate-500">{rec.thai} • Customize before ordering</p>
-                        {rec.sharedIngredients?.length > 0 && (
+                        <p className="font-bold text-slate-900">{rec.dish || rec.name}</p>
+                        <p className="text-xs text-slate-500">
+                          {rec.thaiDish || rec.thai} • {rec.type === 'simple' ? 'Simple order' : 'Customize before ordering'}
+                        </p>
+                        {rec.type === 'customizable' && rec.steps?.length > 0 && (
+                          <div className="mt-2 space-y-1.5">
+                            {rec.steps.map(step => (
+                              <div key={step.step} className="text-xs leading-5 text-slate-600">
+                                <span className="font-bold text-slate-700">{step.step}: </span>
+                                <span>{step.options.join(', ')}</span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                        {rec.type === 'simple' && rec.options?.length > 0 && (
                           <div className="mt-2 flex flex-wrap gap-1.5">
-                            {rec.sharedIngredients.map(ingredient => (
-                              <span key={ingredient} className="rounded-md bg-orange-50 px-2 py-0.5 text-[11px] font-semibold text-orange-700">
-                                {ingredient}
+                            {rec.options.map(option => (
+                              <span key={option} className="rounded-md bg-orange-50 px-2 py-0.5 text-[11px] font-semibold text-orange-700">
+                                {option}
                               </span>
                             ))}
                           </div>
+                        )}
+                        {rec.safetyWarnings?.length > 0 && (
+                          <p className="mt-2 text-xs font-semibold leading-5 text-red-600">{rec.safetyWarnings.join(', ')}</p>
                         )}
                         {rec.reason && <p className="mt-2 text-xs leading-5 text-slate-500">{rec.reason}</p>}
                       </div>

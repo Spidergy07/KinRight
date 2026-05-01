@@ -17,7 +17,16 @@ const foodSchemaHint = `{
   "suggestedQuestions": ["short question a traveler should ask vendor"],
   "thaiOrderSuggestion": "natural Thai order sentence",
   "englishSummary": "short English summary",
-  "recommendedDishes": [{"name": "Dish name in English", "thai": "ชื่อเมนูในภาษาไทย", "sharedIngredients": ["ingredient also found in detected dish"], "reason": "short reason focused on similar ingredients"}],
+  "recommendedDishes": [
+    {
+      "type": "customizable | simple",
+      "dish": "suggested dish in English",
+      "thaiDish": "ชื่อเมนูภาษาไทย",
+      "steps": [{"step": "step name", "options": ["option1", "option2"]}],
+      "options": ["standard order"],
+      "safetyWarnings": ["short warning"]
+    }
+  ],
   "orderInterface": {
     "type": "customizable | simple",
     "dish": "detected dish in English",
@@ -94,12 +103,33 @@ RULES:
    - If image is unclear, use dishId "unknown" and confidence below 0.5.
 4. Keep orderInterface minimal and intuitive, max 3-4 steps.
 5. Focus on how Thai street food is actually ordered, not literal translation.
-6. Generate recommendedDishes as menu suggestions when the detected food is unknown, not directly supported by the app, or when useful similar menu choices are visible. Prioritize dishes with similar core ingredients, protein, noodles/rice, broth/sauce, herbs, or cooking style.
-7. For every recommended dish, include sharedIngredients and a short reason explaining the ingredient similarity.
-8. suggestedQuestions must contain short questions the tourist can ask the vendor when safety or ingredients are uncertain.
-9. thaiOrderSuggestion must be natural Thai text usable to show a vendor.
-10. confidence must be 0 to 1.
-11. If the image looks like a menu, include visible menu text in detectedText.`;
+6. Generate recommendedDishes as structured menu suggestions when the detected food is unknown, not directly supported by the app, or when useful similar menu choices are visible.
+7. Each recommendedDishes item must follow one of these formats:
+   Customizable food:
+   {
+     "type": "customizable",
+     "dish": "<detected or suggested dish>",
+     "thaiDish": "<Thai dish name>",
+     "steps": [
+       {"step": "<step name>", "options": ["option1", "option2"]}
+     ],
+     "options": [],
+     "safetyWarnings": []
+   }
+   Simple food:
+   {
+     "type": "simple",
+     "dish": "<detected or suggested item>",
+     "thaiDish": "<Thai item name>",
+     "steps": [],
+     "options": ["standard order"],
+     "safetyWarnings": []
+   }
+8. For recommendedDishes, prioritize realistic Thai street food ordering and remove anything unsafe for the user.
+9. suggestedQuestions must contain short questions the tourist can ask the vendor when safety or ingredients are uncertain.
+10. thaiOrderSuggestion must be natural Thai text usable to show a vendor.
+11. confidence must be 0 to 1.
+12. If the image looks like a menu, include visible menu text in detectedText.`;
 };
 
 const extractText = data => {

@@ -67,15 +67,29 @@ const normalizeRecommendedDishes = value => {
 
   return value
     .map(item => ({
-      name: String(item?.name || '').trim(),
-      thai: String(item?.thai || '').trim(),
+      type: item?.type === 'simple' ? 'simple' : 'customizable',
+      dish: String(item?.dish || item?.name || '').trim(),
+      thaiDish: String(item?.thaiDish || item?.thai || '').trim(),
+      name: String(item?.name || item?.dish || '').trim(),
+      thai: String(item?.thai || item?.thaiDish || '').trim(),
+      steps: Array.isArray(item?.steps)
+        ? item.steps
+            .map(step => ({
+              step: String(step?.step || '').trim(),
+              options: normalizeStrings(step?.options).slice(0, 6)
+            }))
+            .filter(step => step.step && step.options.length > 0)
+            .slice(0, 4)
+        : [],
+      options: normalizeStrings(item?.options).slice(0, 6),
+      safetyWarnings: normalizeStrings(item?.safetyWarnings).slice(0, 6),
       sharedIngredients: normalizeStrings(item?.sharedIngredients).slice(0, 6),
       reason: String(item?.reason || '').trim()
     }))
     .filter(item => {
-      if (!item.name && !item.thai) return false;
+      if (!item.dish && !item.thaiDish && !item.name && !item.thai) return false;
 
-      const key = `${item.name}:${item.thai}`.toLowerCase();
+      const key = `${item.dish || item.name}:${item.thaiDish || item.thai}`.toLowerCase();
       if (seen.has(key)) return false;
       seen.add(key);
       return true;
