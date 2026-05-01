@@ -19,7 +19,7 @@ export const env = {
     cloudName: process.env.CLOUDINARY_CLOUD_NAME || '',
     apiKey: process.env.CLOUDINARY_API_KEY || '',
     apiSecret: process.env.CLOUDINARY_API_SECRET || '',
-    uploadFolder: process.env.CLOUDINARY_UPLOAD_FOLDER || 'streetfood-ai/uploads'
+    uploadFolder: process.env.CLOUDINARY_UPLOAD_FOLDER || 'kinright/uploads'
   },
   gemini: {
     model: process.env.GEMINI_MODEL || 'gemini-2.5-flash-lite',

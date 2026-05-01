@@ -1,6 +1,6 @@
-# Wai Korn
+# KinRight (กิน-ไร้ท์)
 
-Wai Korn is a mobile-first MVP for travelers ordering Thai street food. Users set allergy/dietary preferences, upload or capture a food/menu photo, get a Gemini analysis, then generate Thai text and audio they can show to a vendor.
+KinRight is a mobile-first MVP for travelers ordering Thai street food. The name plays on "Eat Right" and "กินไรดี": eat correctly, safely, and to your taste.
 
 ## Current Scope
 
@@ -73,7 +73,7 @@ Open `http://YOUR_LAN_IP:5173` on the phone. The frontend rewrites a localhost A
 | `CLOUDINARY_CLOUD_NAME` | Yes | Cloudinary cloud name. |
 | `CLOUDINARY_API_KEY` | Yes | Cloudinary API key. |
 | `CLOUDINARY_API_SECRET` | Yes | Cloudinary API secret. Backend only. |
-| `CLOUDINARY_UPLOAD_FOLDER` | No | Defaults to `streetfood-ai/uploads`. Cloudinary creates it automatically on first upload. |
+| `CLOUDINARY_UPLOAD_FOLDER` | No | Defaults to `kinright/uploads`. Cloudinary creates it automatically on first upload. |
 | `GEMINI_MODEL` | No | Defaults to `gemini-2.5-flash-lite` for lower latency and better MVP reliability. |
 | `GEMINI_API_KEY_1..4` | Yes | Add up to 4 keys for failover rotation. |
 | `MAX_UPLOAD_MB` | No | Defaults to `4` to stay under Vercel Function upload limits. |

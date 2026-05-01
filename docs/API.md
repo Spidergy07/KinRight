@@ -9,7 +9,7 @@ Returns service and config status without exposing secrets.
 ```json
 {
   "ok": true,
-  "service": "streetfood-ai-api",
+  "service": "kinright-api",
   "config": {
     "analysisHistory": false,
     "imageRetention": "deleted-after-analysis",

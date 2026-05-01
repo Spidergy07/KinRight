@@ -136,8 +136,14 @@ const PROFILE_GROUPS = {
   ]
 };
 
-const SPICE_LABELS = ['None', 'Gentle', 'Mild', 'Medium', 'Hot', 'Local'];
-const SPICE_HELP = ['No chili', 'Very light', '1-2 chilis', 'Balanced', 'Spicy', 'Thai spicy'];
+const SPICE_OPTIONS = [
+  { value: 0, label: 'No chili', thai: 'ไม่เผ็ดเลย', note: 'No heat at all.' },
+  { value: 1, label: 'Less spicy', thai: 'เผ็ดนิดเดียว', note: 'Just a tiny kick.' },
+  { value: 2, label: 'Mild spicy', thai: 'เผ็ดน้อย', note: 'Easy for travelers.' },
+  { value: 3, label: 'Medium spicy', thai: 'เผ็ดกลาง', note: 'Balanced heat.' },
+  { value: 4, label: 'Very spicy', thai: 'เผ็ดมาก', note: 'Strong chili.' },
+  { value: 5, label: 'Thai spicy', thai: 'เผ็ดแบบไทย', note: 'Local-level heat.' }
+];
 const FOOD_LIST = Object.values(FOOD_DATABASE);
 const MAX_ANALYSIS_UPLOAD_BYTES = 3.8 * 1024 * 1024;
 const IMAGE_MAX_DIMENSION = 1600;
@@ -179,11 +185,11 @@ const titleCase = value => value.charAt(0).toUpperCase() + value.slice(1);
 const BrandLockup = ({ compact = false }) => (
   <div className="flex items-center gap-3">
     <div className="grid h-12 w-12 shrink-0 place-items-center rounded-lg bg-slate-950 text-white shadow-sm">
-      <span className="text-[13px] font-black leading-none tracking-wide">WK</span>
+      <span className="text-[13px] font-black leading-none tracking-wide">KR</span>
     </div>
     <div className="min-w-0">
-      <p className={`${compact ? 'text-lg' : 'text-3xl'} font-extrabold leading-none text-slate-950`}>Wai Korn</p>
-      <p className="mt-1 truncate text-xs font-semibold uppercase tracking-wide text-orange-600">Thai food helper</p>
+      <p className={`${compact ? 'text-lg' : 'text-3xl'} font-extrabold leading-none text-slate-950`}>KinRight</p>
+      <p className="mt-1 truncate text-xs font-semibold uppercase tracking-wide text-orange-600">กิน-ไร้ท์ • Eat right</p>
     </div>
   </div>
 );
@@ -292,7 +298,8 @@ export default function App() {
     return [...allergyBadges, ...dietaryBadges];
   }, [profile]);
 
-  const spiceCaption = SPICE_LABELS[profile.spiceLevel];
+  const spiceChoice = SPICE_OPTIONS.find(option => option.value === profile.spiceLevel) || SPICE_OPTIONS[2];
+  const spiceCaption = spiceChoice.label;
   const hasActiveAllergy = Object.values(profile.allergies).some(Boolean);
 
   const toggleProfile = (category, item) => {
@@ -339,12 +346,8 @@ export default function App() {
         .find(step => step.id === 'spice')
         .options.find(option => option.id === orderState.spice);
       summary.push(spiceOpt.label);
-    } else if (profile.spiceLevel === 0) {
-      summary.push('No Spice');
-    } else if (profile.spiceLevel <= 2) {
-      summary.push('Mild Spice');
     } else {
-      summary.push(`${spiceCaption} Spice`);
+      summary.push(spiceChoice.label);
     }
 
     const note = customNote.trim();
@@ -427,8 +430,7 @@ export default function App() {
         .options.find(option => option.id === orderState.spice);
       parts.push(spiceOpt.thai);
     } else {
-      if (profile.spiceLevel === 0) parts.push('ไม่เผ็ดเลย');
-      else if (profile.spiceLevel <= 2) parts.push('เผ็ดน้อย');
+      parts.push(spiceChoice.thai);
     }
 
     const warnings = [];
@@ -495,9 +497,9 @@ export default function App() {
         <div>
           <BrandLockup />
           <p className="mt-6 text-sm font-semibold text-orange-600">Travel-friendly Thai ordering</p>
-          <h1 className="mt-2 text-4xl font-extrabold leading-tight text-slate-950">Order Thai street food with confidence.</h1>
+          <h1 className="mt-2 text-4xl font-extrabold leading-tight text-slate-950">กินให้ถูก ถูกใจ ถูกต้อง.</h1>
           <p className="mt-3 text-base leading-6 text-slate-600">
-            Choose food, avoid unsafe ingredients, and show a clear Thai order to the vendor.
+            Order Thai street food with clearer choices, safer ingredients, and Thai text/audio for the vendor.
           </p>
         </div>
 
@@ -560,25 +562,26 @@ export default function App() {
 
             <div>
               <div className="mb-3 flex items-center justify-between gap-3 text-sm font-semibold text-slate-700">
-                <span>Spice tolerance</span>
+                <span>Spice preference</span>
                 <span className="text-orange-600">{spiceCaption}</span>
               </div>
               <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-                {SPICE_LABELS.map((label, index) => {
-                  const active = profile.spiceLevel === index;
+                {SPICE_OPTIONS.map(option => {
+                  const active = profile.spiceLevel === option.value;
 
                   return (
                     <button
-                      key={label}
+                      key={option.value}
                       type="button"
                       aria-pressed={active}
-                      onClick={() => setProfile({ ...profile, spiceLevel: index })}
+                      onClick={() => setProfile({ ...profile, spiceLevel: option.value })}
                       className={`min-h-[4.25rem] rounded-lg border px-3 py-2 text-left transition-colors ${
                         active ? 'border-orange-300 bg-orange-50 text-orange-700' : 'border-slate-200 bg-slate-50 text-slate-700 hover:bg-white'
                       }`}
                     >
-                      <span className="block text-sm font-bold">{label}</span>
-                      <span className="mt-1 block text-xs font-medium text-slate-500">{SPICE_HELP[index]}</span>
+                      <span className="block text-sm font-bold">{option.label}</span>
+                      <span className="mt-1 block text-sm font-semibold text-slate-600">{option.thai}</span>
+                      <span className="mt-1 block text-xs font-medium text-slate-500">{option.note}</span>
                     </button>
                   );
                 })}

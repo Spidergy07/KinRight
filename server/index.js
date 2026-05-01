@@ -3,7 +3,7 @@ import { env } from './config/env.js';
 
 const start = async () => {
   app.listen(env.port, () => {
-    console.log(`StreetFood AI API running on http://localhost:${env.port}`);
+    console.log(`KinRight API running on http://localhost:${env.port}`);
   });
 };
 

@@ -64,7 +64,7 @@ app.use(express.json({ limit: '1mb' }));
 app.get('/api/health', (_request, response) => {
   response.json({
     ok: true,
-    service: 'streetfood-ai-api',
+    service: 'kinright-api',
     config: getConfigStatus()
   });
 });
