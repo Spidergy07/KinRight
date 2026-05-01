@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   AlertTriangle,
   ArrowRight,
@@ -157,6 +157,15 @@ const FOOD_DATABASE = {
 
 const MAX_ANALYSIS_UPLOAD_BYTES = 3.8 * 1024 * 1024;
 const IMAGE_MAX_DIMENSION = 1600;
+const THAI_VOICE_PREFERENCES = [
+  /siri/i,
+  /kanya/i,
+  /narisa/i,
+  /apple/i,
+  /google.*thai/i,
+  /thai/i,
+  /ไทย/i
+];
 
 const getApiBaseUrl = () => {
   const configuredUrl = import.meta.env.VITE_API_URL;
@@ -254,6 +263,19 @@ const buildOrderStateFromText = (food, values = []) => {
   return initialState;
 };
 
+const getThaiSpeechVoice = () => {
+  if (typeof window === 'undefined' || !('speechSynthesis' in window)) return null;
+
+  const voices = window.speechSynthesis.getVoices();
+  const thaiVoices = voices.filter(voice => /^th(-|_|$)/i.test(voice.lang) || /thai|ไทย/i.test(voice.name));
+
+  return (
+    THAI_VOICE_PREFERENCES.map(pattern => thaiVoices.find(voice => pattern.test(voice.name))).find(Boolean) ||
+    thaiVoices[0] ||
+    null
+  );
+};
+
 const loadImageElement = file =>
   new Promise((resolve, reject) => {
     const url = URL.createObjectURL(file);
@@ -332,6 +354,19 @@ export default function App() {
   const derivedProfile = useMemo(() => deriveProfileConstraints(profile), [profile]);
   const profileInstructions = derivedProfile.instructions;
   const hasActiveAllergy = Object.values(derivedProfile.allergies).some(Boolean);
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || !('speechSynthesis' in window)) return undefined;
+
+    window.speechSynthesis.getVoices();
+    window.speechSynthesis.onvoiceschanged = () => {
+      window.speechSynthesis.getVoices();
+    };
+
+    return () => {
+      window.speechSynthesis.onvoiceschanged = null;
+    };
+  }, []);
 
   const startOrdering = (foodId, analysis = null) => {
     const food = FOOD_DATABASE[foodId];
@@ -532,8 +567,13 @@ export default function App() {
   const speakText = text => {
     if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
       const utterance = new SpeechSynthesisUtterance(text);
+      const thaiVoice = getThaiSpeechVoice();
+
       utterance.lang = 'th-TH';
-      utterance.rate = 0.9;
+      if (thaiVoice) utterance.voice = thaiVoice;
+      utterance.rate = 0.78;
+      utterance.pitch = 1;
+      utterance.volume = 1;
       window.speechSynthesis.cancel();
       window.speechSynthesis.speak(utterance);
     }
