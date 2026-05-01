@@ -1,11 +1,10 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   AlertTriangle,
   ArrowRight,
   Camera,
   CheckCircle2,
   ChevronLeft,
-  Clock,
   Edit3,
   Image as ImageIcon,
   Languages,
@@ -140,6 +139,32 @@ const PROFILE_GROUPS = {
 const SPICE_LABELS = ['None', 'Gentle', 'Mild', 'Medium', 'Hot', 'Local'];
 const FOOD_LIST = Object.values(FOOD_DATABASE);
 
+const getApiBaseUrl = () => {
+  const configuredUrl = import.meta.env.VITE_API_URL;
+
+  if (typeof window === 'undefined') return configuredUrl || 'http://localhost:3000';
+
+  const fallbackUrl = `${window.location.protocol}//${window.location.hostname}:3000`;
+  if (!configuredUrl) return fallbackUrl;
+
+  try {
+    const url = new URL(configuredUrl, window.location.origin);
+    const pageHost = window.location.hostname;
+    const pageIsLan = !['localhost', '127.0.0.1', '::1'].includes(pageHost);
+    const apiIsLocalhost = ['localhost', '127.0.0.1', '::1'].includes(url.hostname);
+
+    if (pageIsLan && apiIsLocalhost) {
+      url.hostname = pageHost;
+    }
+
+    return url.origin;
+  } catch {
+    return fallbackUrl;
+  }
+};
+
+const API_BASE_URL = getApiBaseUrl();
+
 const titleCase = value => value.charAt(0).toUpperCase() + value.slice(1);
 
 const ToggleChip = ({ active, danger, icon, label, onClick }) => (
@@ -173,16 +198,8 @@ export default function App() {
   const [customNote, setCustomNote] = useState('');
   const [showAllergyModal, setShowAllergyModal] = useState(false);
   const [scanSource, setScanSource] = useState({ type: 'camera', name: '' });
-  const [orderHistory, setOrderHistory] = useState(() => {
-    if (typeof window === 'undefined') return [];
-
-    try {
-      const saved = JSON.parse(window.localStorage.getItem('streetfood-order-history') || '[]');
-      return Array.isArray(saved) ? saved.slice(0, 10) : [];
-    } catch {
-      return [];
-    }
-  });
+  const [scanPreviewUrl, setScanPreviewUrl] = useState('');
+  const [scanAnalysis, setScanAnalysis] = useState({ status: 'idle', data: null, error: '' });
 
   const profileBadges = useMemo(() => {
     const allergyBadges = PROFILE_GROUPS.allergies
@@ -197,16 +214,6 @@ export default function App() {
 
   const spiceCaption = SPICE_LABELS[profile.spiceLevel];
   const hasActiveAllergy = Object.values(profile.allergies).some(Boolean);
-
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      try {
-        window.localStorage.setItem('streetfood-order-history', JSON.stringify(orderHistory.slice(0, 10)));
-      } catch {
-        // History still works in memory if localStorage is unavailable.
-      }
-    }
-  }, [orderHistory]);
 
   const toggleProfile = (category, item) => {
     setProfile(prev => ({
@@ -266,53 +273,53 @@ export default function App() {
     return summary.join(' • ');
   };
 
-  const saveToHistory = () => {
-    if (!selectedFood) return;
-
-    const historyItem = {
-      id: Date.now(),
-      foodId: selectedFood.id,
-      foodName: selectedFood.name,
-      image: selectedFood.image,
-      englishSummary: getEnglishSummary(),
-      orderState: { ...orderState },
-      customNote: customNote.trim(),
-      date: new Date().toLocaleString('en-US', {
-        month: 'short',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-      })
-    };
-
-    setOrderHistory(prev => [historyItem, ...prev].slice(0, 10));
-  };
-
-  const loadHistoryItem = item => {
-    const food = FOOD_DATABASE[item.foodId];
-    if (!food) return;
-
-    setSelectedFood(food);
-    setOrderState(item.orderState || {});
-    setCustomNote(item.customNote || '');
-    setCurrentStepIndex(Math.max(food.steps.length - 1, 0));
-    setShowAllergyModal(false);
-    setView('result');
-  };
-
   const finishOrder = () => {
     if (hasActiveAllergy) {
       setShowAllergyModal(true);
       return;
     }
 
-    saveToHistory();
     setView('result');
   };
 
   const openScanner = () => {
     setScanSource({ type: 'camera', name: '' });
+    setScanPreviewUrl('');
+    setScanAnalysis({ status: 'idle', data: null, error: '' });
     setView('scanning');
+  };
+
+  const analyzeUploadedImage = async file => {
+    if (!file) return;
+
+    setScanSource({ type: 'photo', name: file.name });
+    setScanPreviewUrl(URL.createObjectURL(file));
+    setScanAnalysis({ status: 'loading', data: null, error: '' });
+
+    try {
+      const formData = new FormData();
+      formData.append('image', file);
+      formData.append('profile', JSON.stringify(profile));
+
+      const response = await fetch(`${API_BASE_URL}/api/analyze`, {
+        method: 'POST',
+        body: formData
+      });
+
+      const body = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(body.error || 'Image analysis failed.');
+      }
+
+      setScanAnalysis({ status: 'done', data: body, error: '' });
+    } catch (error) {
+      const rawMessage = error.message || 'Image analysis failed.';
+      const message =
+        rawMessage === 'Load failed' || rawMessage === 'Failed to fetch'
+          ? `Cannot reach API at ${API_BASE_URL}. Start the API server and use the same Wi-Fi.`
+          : rawMessage;
+      setScanAnalysis({ status: 'error', data: null, error: message });
+    }
   };
 
   const generateThaiOrder = () => {
@@ -529,43 +536,28 @@ export default function App() {
         <div className="mb-5 flex flex-wrap gap-2">{renderProfileBadges()}</div>
 
         <section className="mb-7">
-          <div className="mb-3 flex items-center justify-between gap-3">
-            <h2 className="flex items-center gap-2 text-base font-bold text-slate-950">
-              <Clock className="h-5 w-5 text-slate-400" />
-              Recent orders
-            </h2>
-            <span className="text-xs font-semibold text-slate-400">{orderHistory.length}/10</span>
+          <div className="mb-3">
+            <h2 className="text-base font-bold text-slate-950">Quick manual order</h2>
+            <p className="mt-1 text-sm leading-5 text-slate-500">Use this when the photo is unclear or the vendor is waiting.</p>
           </div>
 
-          {orderHistory.length === 0 ? (
-            <button type="button" onClick={openScanner} className="w-full rounded-lg border border-dashed border-slate-300 bg-white p-4 text-left">
-              <p className="font-semibold text-slate-900">No orders yet</p>
-              <p className="mt-1 text-sm leading-5 text-slate-500">Create one order and it will be saved here.</p>
-            </button>
-          ) : (
-            <div className="grid gap-2">
-              {orderHistory.map(item => {
-                const food = FOOD_DATABASE[item.foodId];
-                return (
-                  <button
-                    key={item.id}
-                    type="button"
-                    onClick={() => loadHistoryItem(item)}
-                    className="flex w-full items-center gap-3 rounded-lg border border-slate-200 bg-white p-3 text-left transition-colors hover:bg-slate-50"
-                  >
-                    <span className={`grid h-11 w-11 shrink-0 place-items-center rounded-lg ${food?.accent.bg || 'bg-slate-50'} text-2xl`}>
-                      {item.image}
-                    </span>
-                    <span className="min-w-0 flex-1">
-                      <span className="block truncate text-sm font-bold text-slate-900">{item.foodName}</span>
-                      <span className="block truncate text-xs text-slate-500">{item.englishSummary}</span>
-                    </span>
-                    <ArrowRight className="h-4 w-4 shrink-0 text-slate-300" />
-                  </button>
-                );
-              })}
-            </div>
-          )}
+          <div className="grid gap-2">
+            {FOOD_LIST.map(food => (
+              <button
+                key={food.id}
+                type="button"
+                onClick={() => startOrdering(food.id)}
+                className="flex w-full items-center gap-3 rounded-lg border border-slate-200 bg-white p-3 text-left transition-colors hover:bg-slate-50"
+              >
+                <span className={`grid h-11 w-11 shrink-0 place-items-center rounded-lg ${food.accent.bg} text-2xl`}>{food.image}</span>
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-sm font-bold text-slate-900">{food.name}</span>
+                  <span className="block truncate text-xs text-slate-500">{food.description}</span>
+                </span>
+                <ArrowRight className="h-4 w-4 shrink-0 text-slate-300" />
+              </button>
+            ))}
+          </div>
         </section>
 
       </div>
@@ -580,60 +572,166 @@ export default function App() {
   );
 
   const renderScanning = () => (
-    <div className="relative flex h-full min-h-0 flex-col overflow-hidden bg-slate-950 text-white animate-in fade-in duration-200">
-      <div className="absolute inset-x-8 top-[22%] flex justify-center">
-        <div className="relative aspect-square w-full max-w-72 rounded-lg border border-white/50">
-          <div className="absolute inset-4 rounded-lg border border-white/10" />
-          <div className="absolute left-3 right-3 top-1/2 h-px animate-[scan_2s_ease-in-out_infinite] bg-orange-400" />
+    <div className="flex h-full min-h-0 flex-col bg-slate-50 animate-in fade-in duration-200">
+      <header className="border-b border-slate-200 bg-white px-5 pb-4 pt-[max(1.25rem,env(safe-area-inset-top))] sm:px-6 sm:pt-8">
+        <div className="flex items-center justify-between gap-3">
+          <button type="button" aria-label="Back to home" onClick={() => setView('home')} className="secondary-button min-h-10 px-3 py-2">
+            <ChevronLeft className="h-6 w-6" />
+            Home
+          </button>
+          <div className="min-w-0 text-center">
+            <p className="text-base font-bold text-slate-950">Scan food or menu</p>
+            <p className="truncate text-xs text-slate-400">{API_BASE_URL}</p>
+          </div>
+          <label className="icon-button cursor-pointer">
+            <span className="sr-only">Take or upload photo</span>
+            <ImageIcon className="h-5 w-5" />
+            <input
+              type="file"
+              accept="image/*"
+              capture="environment"
+              className="sr-only"
+              onChange={event => {
+                const file = event.target.files?.[0];
+                event.target.value = '';
+                analyzeUploadedImage(file);
+              }}
+            />
+          </label>
         </div>
-      </div>
+      </header>
 
-      <div className="relative z-10 flex items-center justify-between gap-3 p-5 pt-[max(1.5rem,env(safe-area-inset-top))] sm:p-6 sm:pt-8">
-        <button type="button" aria-label="Back to home" onClick={() => setView('home')} className="icon-button-dark">
-          <ChevronLeft className="h-6 w-6" />
-        </button>
-        <div className="rounded-lg bg-white/10 px-3 py-2 text-sm font-semibold backdrop-blur">
-          {scanSource.type === 'photo' ? 'Photo ready' : 'Point camera at food'}
-        </div>
-        <label className="icon-button-dark cursor-pointer">
-          <span className="sr-only">Upload menu photo</span>
-          <ImageIcon className="h-5 w-5" />
-          <input
-            type="file"
-            accept="image/*"
-            className="sr-only"
-            onChange={event => {
-              const file = event.target.files?.[0];
-              if (file) setScanSource({ type: 'photo', name: file.name });
-            }}
-          />
-        </label>
-      </div>
+      <div className="min-h-0 flex-1 overflow-y-auto p-5 pb-7 sm:p-6">
+        <section className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+          <div className="overflow-hidden rounded-lg bg-slate-100">
+            {scanPreviewUrl ? (
+              <img src={scanPreviewUrl} alt="Selected food or menu" className="h-64 w-full object-cover" />
+            ) : (
+              <div className="grid h-64 place-items-center px-6 text-center">
+                <div>
+                  <div className="mx-auto grid h-14 w-14 place-items-center rounded-lg bg-orange-100 text-orange-600">
+                    <Camera className="h-7 w-7" />
+                  </div>
+                  <p className="mt-4 font-bold text-slate-950">Take a photo to analyze</p>
+                  <p className="mt-1 text-sm leading-5 text-slate-500">Use a clear photo of the dish, menu, or food stall sign.</p>
+                </div>
+              </div>
+            )}
+          </div>
 
-      <div className="absolute bottom-0 left-0 right-0 max-h-[58%] overflow-y-auto bg-gradient-to-t from-slate-950 via-slate-950/95 to-transparent p-5 pt-20 sm:p-6 sm:pt-24">
-        <div className="mb-3 flex items-center justify-between gap-3">
-          <p className="text-sm font-semibold text-white/80">Select a match</p>
-          <p className="max-w-[12rem] truncate text-xs text-white/45">
-            {scanSource.type === 'photo' ? scanSource.name || 'Photo' : 'Camera'}
-          </p>
-        </div>
-        <div className="space-y-2">
-          {FOOD_LIST.map(food => (
-            <button
-              key={food.id}
-              type="button"
-              onClick={() => startOrdering(food.id)}
-              className="flex w-full items-center gap-3 rounded-lg border border-white/10 bg-white/10 p-3 text-left backdrop-blur transition-colors hover:bg-white/15"
-            >
-              <span className={`grid h-11 w-11 shrink-0 place-items-center rounded-lg ${food.accent.bg} text-2xl`}>{food.image}</span>
-              <span className="min-w-0 flex-1">
-                <span className="block truncate font-semibold">{food.name}</span>
-                <span className="text-xs text-emerald-300">{food.match} match</span>
-              </span>
-              <ArrowRight className="h-4 w-4 text-white/45" />
+          <label className="primary-button mt-4 cursor-pointer">
+            <Camera className="h-5 w-5" />
+            Take or choose photo
+            <input
+              type="file"
+              accept="image/*"
+              capture="environment"
+              className="sr-only"
+              onChange={event => {
+                const file = event.target.files?.[0];
+                event.target.value = '';
+                analyzeUploadedImage(file);
+              }}
+            />
+          </label>
+
+          {scanSource.type === 'photo' && (
+            <p className="mt-3 truncate text-center text-xs text-slate-400">{scanSource.name}</p>
+          )}
+        </section>
+
+        {scanAnalysis.status === 'loading' && (
+          <div className="mt-4 rounded-lg border border-orange-100 bg-white p-4 text-slate-900 shadow-sm" role="status" aria-live="polite">
+            <div className="flex items-start gap-3">
+              <div className="processing-spinner mt-1" />
+              <div className="min-w-0 flex-1">
+                <p className="font-bold">Processing your photo</p>
+                <p className="mt-1 text-sm leading-5 text-slate-500">This usually takes 10-30 seconds. Keep this page open.</p>
+              </div>
+            </div>
+
+            <div className="mt-4 h-2 overflow-hidden rounded-full bg-orange-100">
+              <div className="processing-bar h-full rounded-full bg-orange-500" />
+            </div>
+
+            <div className="mt-4 grid gap-2 text-sm">
+              {[
+                'Uploading image temporarily',
+                'Gemini is reading the food/menu',
+                'Deleting the upload after analysis'
+              ].map((label, index) => (
+                <div key={label} className="flex items-center gap-2 text-slate-600">
+                  <span className="grid h-5 w-5 place-items-center rounded-full bg-orange-50 text-[11px] font-bold text-orange-600">
+                    {index + 1}
+                  </span>
+                  <span>{label}</span>
+                </div>
+              ))}
+            </div>
+
+            <button type="button" disabled className="mt-4 flex min-h-11 w-full items-center justify-center gap-2 rounded-lg bg-slate-100 font-bold text-slate-500">
+              <span className="h-2 w-2 animate-pulse rounded-full bg-orange-500" />
+              Processing...
             </button>
-          ))}
-        </div>
+          </div>
+        )}
+
+        {scanAnalysis.status === 'error' && (
+          <div className="mt-4 rounded-lg border border-red-100 bg-red-50 p-4 text-red-800">
+            <p className="font-bold">Could not analyze image</p>
+            <p className="mt-1 text-sm leading-5 text-red-700">{scanAnalysis.error}</p>
+          </div>
+        )}
+
+        {scanAnalysis.status === 'done' && scanAnalysis.data?.analysis && (
+          <div className="mt-4 rounded-lg border border-emerald-100 bg-white p-4 shadow-sm">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-xs font-semibold uppercase tracking-wide text-emerald-600">AI detection</p>
+                <h3 className="mt-1 truncate text-xl font-extrabold text-slate-950">{scanAnalysis.data.analysis.dishName}</h3>
+                <p className="mt-1 text-sm leading-5 text-slate-500">{scanAnalysis.data.analysis.englishSummary}</p>
+              </div>
+              <span className="rounded-md bg-emerald-50 px-2 py-1 text-xs font-bold text-emerald-700">
+                {Math.round((scanAnalysis.data.analysis.confidence || 0) * 100)}%
+              </span>
+            </div>
+
+            {scanAnalysis.data.analysis.allergyRisks?.length > 0 && (
+              <div className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-sm font-semibold text-red-700">
+                Risk: {scanAnalysis.data.analysis.allergyRisks.map(risk => risk.name).join(', ')}
+              </div>
+            )}
+
+            {FOOD_DATABASE[scanAnalysis.data.analysis.dishId] ? (
+              <button type="button" onClick={() => startOrdering(scanAnalysis.data.analysis.dishId)} className="primary-button mt-4">
+                Use this result <ArrowRight className="h-4 w-4" />
+              </button>
+            ) : (
+              <p className="mt-3 text-sm text-slate-500">Not confident enough. Choose manually below.</p>
+            )}
+          </div>
+        )}
+
+        <section className="mt-6">
+          <h2 className="mb-3 text-sm font-bold text-slate-950">Manual fallback</h2>
+          <div className="space-y-2">
+            {FOOD_LIST.map(food => (
+              <button
+                key={food.id}
+                type="button"
+                onClick={() => startOrdering(food.id)}
+                className="flex w-full items-center gap-3 rounded-lg border border-slate-200 bg-white p-3 text-left transition-colors hover:bg-slate-50"
+              >
+                <span className={`grid h-11 w-11 shrink-0 place-items-center rounded-lg ${food.accent.bg} text-2xl`}>{food.image}</span>
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate font-semibold text-slate-950">{food.name}</span>
+                  <span className="text-xs text-slate-400">Choose manually</span>
+                </span>
+                <ArrowRight className="h-4 w-4 text-slate-300" />
+              </button>
+            ))}
+          </div>
+        </section>
       </div>
     </div>
   );
@@ -776,7 +874,6 @@ export default function App() {
                   type="button"
                   onClick={() => {
                     setShowAllergyModal(false);
-                    saveToHistory();
                     setView('result');
                   }}
                   className="rounded-lg bg-red-600 px-4 py-3 font-bold text-white transition-colors hover:bg-red-700"
@@ -803,7 +900,9 @@ export default function App() {
             <ChevronLeft className="h-6 w-6" />
           </button>
           <span className="font-bold text-slate-950">Your order</span>
-          <div className="h-10 w-10" />
+          <button type="button" aria-label="Play Thai audio" onClick={() => speakText(orderData.full)} className="icon-button">
+            <Volume2 className="h-5 w-5" />
+          </button>
         </header>
 
         <div className="flex min-h-0 flex-1 flex-col justify-center gap-5 overflow-y-auto p-5 sm:p-6">

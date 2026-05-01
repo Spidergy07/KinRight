@@ -135,6 +135,21 @@ button {
     background: #ea580c;
     box-shadow: 0 2px 8px rgba(15, 23, 42, 0.18);
   }
+
+  .processing-spinner {
+    width: 1.5rem;
+    height: 1.5rem;
+    border-radius: 999px;
+    border: 3px solid #fed7aa;
+    border-top-color: #ea580c;
+    animation: spin 900ms linear infinite;
+    flex: none;
+  }
+
+  .processing-bar {
+    width: 42%;
+    animation: processing-slide 1.35s ease-in-out infinite;
+  }
 }
 
 @keyframes scan {
@@ -146,5 +161,23 @@ button {
   50% {
     top: 100%;
     opacity: 1;
+  }
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes processing-slide {
+  0% {
+    transform: translateX(-110%);
+  }
+  50% {
+    transform: translateX(80%);
+  }
+  100% {
+    transform: translateX(250%);
   }
 }
