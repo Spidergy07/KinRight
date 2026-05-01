@@ -36,28 +36,31 @@ const FOOD_DATABASE = {
         id: 'noodle_type',
         title: 'Choose Noodle',
         options: [
-          { id: 'sen_lek', label: 'Thin Rice Noodle', thai: 'เส้นเล็ก', tags: [] },
-          { id: 'sen_yai', label: 'Wide Rice Noodle', thai: 'เส้นใหญ่', tags: [] },
-          { id: 'ba_mee', label: 'Egg Noodle', thai: 'บะหมี่', tags: ['gluten'] }
+          { id: 'sen_lek', label: 'Thin Rice Noodle', thai: 'เส้นเล็ก', tags: [], aliases: ['rice noodles', 'thin noodle', 'sen lek'] },
+          { id: 'sen_yai', label: 'Wide Rice Noodle', thai: 'เส้นใหญ่', tags: [], aliases: ['wide noodle', 'flat noodle', 'sen yai'] },
+          { id: 'wun_sen', label: 'Glass Noodle', thai: 'วุ้นเส้น', tags: [], aliases: ['glass noodle', 'bean vermicelli'] },
+          { id: 'ba_mee', label: 'Egg Noodle', thai: 'บะหมี่', tags: ['gluten'], aliases: ['egg noodle', 'wonton noodle', 'บะหมี่'] }
         ]
       },
       {
         id: 'soup_type',
         title: 'Choose Soup',
         options: [
-          { id: 'clear', label: 'Clear Soup', thai: 'น้ำใส', tags: [] },
-          { id: 'tom_yum', label: 'Tom Yum', thai: 'ต้มยำ', tags: ['peanut', 'spicy'] },
-          { id: 'nam_tok', label: 'Boat Noodle (Blood Soup)', thai: 'น้ำตก', tags: ['pork', 'beef'] }
+          { id: 'clear', label: 'Clear Soup', thai: 'น้ำใส', tags: [], aliases: ['clear soup', 'broth', 'soup'] },
+          { id: 'tom_yum', label: 'Tom Yum', thai: 'ต้มยำ', tags: ['peanut', 'spicy'], aliases: ['tom yum', 'spicy sour'] },
+          { id: 'nam_tok', label: 'Boat Noodle (Blood Soup)', thai: 'น้ำตก', tags: ['pork', 'beef'], aliases: ['boat noodle', 'blood soup', 'nam tok'] },
+          { id: 'dry', label: 'Dry Noodle', thai: 'แห้ง', tags: [], aliases: ['dry noodle', 'dry'] }
         ]
       },
       {
         id: 'protein',
         title: 'Choose Protein',
         options: [
-          { id: 'pork', label: 'Pork', thai: 'หมู', tags: ['pork'] },
-          { id: 'chicken', label: 'Chicken', thai: 'ไก่', tags: [] },
-          { id: 'beef', label: 'Beef', thai: 'เนื้อ', tags: ['beef'] },
-          { id: 'tofu', label: 'Tofu (Vegan)', thai: 'เต้าหู้', tags: ['vegan'] }
+          { id: 'pork', label: 'Pork', thai: 'หมู', tags: ['pork'], aliases: ['pork', 'หมู'] },
+          { id: 'chicken', label: 'Chicken', thai: 'ไก่', tags: [], aliases: ['chicken', 'ไก่'] },
+          { id: 'beef', label: 'Beef', thai: 'เนื้อ', tags: ['beef'], aliases: ['beef', 'braised beef', 'เนื้อ'] },
+          { id: 'wonton', label: 'Wonton', thai: 'เกี๊ยว', tags: ['pork', 'gluten'], aliases: ['wonton', 'เกี๊ยว'] },
+          { id: 'tofu', label: 'Tofu (Vegan)', thai: 'เต้าหู้', tags: ['vegan'], aliases: ['tofu', 'เต้าหู้'] }
         ]
       }
     ]
@@ -81,17 +84,27 @@ const FOOD_DATABASE = {
         id: 'type',
         title: 'Style',
         options: [
-          { id: 'thai', label: 'Thai Style (Sweet & Sour)', thai: 'ตำไทย', tags: ['peanut'] },
-          { id: 'plara', label: 'Fermented Fish Style', thai: 'ตำปลาร้า', tags: ['seafood'] }
+          { id: 'thai', label: 'Thai Style (Sweet & Sour)', thai: 'ตำไทย', tags: ['peanut'], aliases: ['thai style', 'sweet sour', 'ตำไทย'] },
+          { id: 'plara', label: 'Fermented Fish Style', thai: 'ตำปลาร้า', tags: ['seafood'], aliases: ['fermented fish', 'plara', 'ปลาร้า'] },
+          { id: 'cucumber', label: 'Cucumber Salad', thai: 'ตำแตง', tags: ['seafood'], aliases: ['cucumber', 'ตำแตง'] }
         ]
       },
       {
         id: 'spice',
         title: 'Spice Level',
         options: [
-          { id: 'no_spice', label: 'No Chili', thai: 'ไม่พริกเลย', tags: [] },
-          { id: 'mild', label: '1-2 Chilis', thai: 'เผ็ดน้อย (พริก 1-2 เม็ด)', tags: [] },
-          { id: 'spicy', label: 'Thai Spicy', thai: 'เผ็ดปกติ', tags: [] }
+          { id: 'no_spice', label: 'No Chili', thai: 'ไม่พริกเลย', tags: [], aliases: ['no chili', 'no spice', 'not spicy'] },
+          { id: 'mild', label: '1-2 Chilis', thai: 'เผ็ดน้อย (พริก 1-2 เม็ด)', tags: [], aliases: ['mild', 'less spicy'] },
+          { id: 'spicy', label: 'Thai Spicy', thai: 'เผ็ดปกติ', tags: [], aliases: ['thai spicy', 'spicy'] }
+        ]
+      },
+      {
+        id: 'addon',
+        title: 'Add-on',
+        options: [
+          { id: 'none', label: 'No Add-on', thai: 'ไม่ใส่เครื่องเพิ่ม', tags: [], aliases: [] },
+          { id: 'salted_egg', label: 'Salted Egg', thai: 'ไข่เค็ม', tags: [], aliases: ['salted egg'] },
+          { id: 'shrimp', label: 'Shrimp', thai: 'กุ้งสด', tags: ['seafood'], aliases: ['shrimp', 'prawn'] }
         ]
       }
     ]
@@ -115,16 +128,33 @@ const FOOD_DATABASE = {
         id: 'protein',
         title: 'Meat',
         options: [
-          { id: 'shrimp', label: 'Shrimp', thai: 'กุ้งสด', tags: ['seafood'] },
-          { id: 'chicken', label: 'Chicken', thai: 'ไก่', tags: [] },
-          { id: 'veg', label: 'Tofu/Veg', thai: 'มังสวิรัติ', tags: ['vegan'] }
+          { id: 'shrimp', label: 'Shrimp', thai: 'กุ้งสด', tags: ['seafood'], aliases: ['shrimp', 'prawn', 'กุ้ง'] },
+          { id: 'chicken', label: 'Chicken', thai: 'ไก่', tags: [], aliases: ['chicken', 'ไก่'] },
+          { id: 'pork', label: 'Pork', thai: 'หมู', tags: ['pork'], aliases: ['pork', 'หมู'] },
+          { id: 'veg', label: 'Tofu/Veg', thai: 'มังสวิรัติ', tags: ['vegan'], aliases: ['tofu', 'vegetarian', 'veg'] }
+        ]
+      },
+      {
+        id: 'egg',
+        title: 'Egg',
+        options: [
+          { id: 'normal', label: 'With Egg', thai: 'ใส่ไข่', tags: [], aliases: ['egg'] },
+          { id: 'no_egg', label: 'No Egg', thai: 'ไม่ใส่ไข่', tags: [], aliases: ['no egg'] }
+        ]
+      },
+      {
+        id: 'taste',
+        title: 'Taste',
+        options: [
+          { id: 'normal', label: 'Normal Taste', thai: 'รสปกติ', tags: [], aliases: [] },
+          { id: 'less_sweet', label: 'Less Sweet', thai: 'หวานน้อย', tags: [], aliases: ['less sweet'] },
+          { id: 'less_spicy', label: 'Less Spicy', thai: 'เผ็ดน้อย', tags: [], aliases: ['less spicy', 'mild'] }
         ]
       }
     ]
   }
 };
 
-const FOOD_LIST = Object.values(FOOD_DATABASE);
 const MAX_ANALYSIS_UPLOAD_BYTES = 3.8 * 1024 * 1024;
 const IMAGE_MAX_DIMENSION = 1600;
 
@@ -166,6 +196,8 @@ const getProfileInstructions = profile => String(profile?.instructions || '').tr
 
 const hasAny = (value, patterns) => patterns.some(pattern => pattern.test(value));
 
+const normalizeSearchText = value => String(value || '').toLowerCase();
+
 const deriveProfileConstraints = profile => {
   const instructions = getProfileInstructions(profile).toLowerCase();
   const allergyContext = /แพ้|allerg|avoid|no |ไม่กิน|ห้าม|can't|cannot/i.test(instructions);
@@ -195,6 +227,32 @@ const BrandLockup = ({ compact = false }) => (
     </div>
   </div>
 );
+
+const inferFoodId = value => {
+  const text = normalizeSearchText(value);
+
+  if (/som\s*tum|papaya|ส้มตำ|ตำไทย|ตำปลาร้า|ตำแตง/.test(text)) return 'somtum';
+  if (/pad\s*thai|ผัดไทย/.test(text)) return 'padthai';
+  if (/noodle|ก๋วยเตี๋ยว|บะหมี่|เกี๊ยว|wonton/.test(text)) return 'noodles';
+
+  return '';
+};
+
+const buildOrderStateFromText = (food, values = []) => {
+  const text = values.map(normalizeSearchText).join(' ');
+  const initialState = {};
+
+  food.steps.forEach(step => {
+    const match = step.options.find(option => {
+      const candidates = [option.id, option.label, option.thai, ...(option.aliases || []), ...(option.tags || [])];
+      return candidates.some(candidate => candidate && text.includes(normalizeSearchText(candidate)));
+    });
+
+    if (match) initialState[step.id] = match.id;
+  });
+
+  return initialState;
+};
 
 const loadImageElement = file =>
   new Promise((resolve, reject) => {
@@ -269,6 +327,7 @@ export default function App() {
   const [scanPreviewUrl, setScanPreviewUrl] = useState('');
   const [scanAnalysis, setScanAnalysis] = useState({ status: 'idle', data: null, error: '' });
   const [recommendation, setRecommendation] = useState(null);
+  const [selectedAnalysis, setSelectedAnalysis] = useState(null);
 
   const derivedProfile = useMemo(() => deriveProfileConstraints(profile), [profile]);
   const profileInstructions = derivedProfile.instructions;
@@ -280,20 +339,15 @@ export default function App() {
 
     setSelectedFood(food);
     setRecommendation(null);
-    
-    const initialState = {};
-    if (analysis?.likelyIngredients) {
-      const ingredients = analysis.likelyIngredients.map(i => i.toLowerCase());
-      food.steps.forEach(step => {
-        const match = step.options.find(opt => 
-          ingredients.includes(opt.label.toLowerCase()) || 
-          ingredients.includes(opt.thai.toLowerCase()) ||
-          ingredients.some(i => i.includes(opt.thai.toLowerCase()))
-        );
-        if (match) initialState[step.id] = match.id;
-      });
-    }
+    setSelectedAnalysis(analysis);
 
+    const initialState = buildOrderStateFromText(food, [
+      analysis?.dishName,
+      analysis?.thaiName,
+      analysis?.englishSummary,
+      ...(analysis?.likelyIngredients || []),
+      ...(analysis?.detectedText || [])
+    ]);
     setOrderState(initialState);
     setCurrentStepIndex(0);
     setCustomNote('');
@@ -302,14 +356,35 @@ export default function App() {
   };
 
   const useRecommendation = (rec) => {
-    setRecommendation(rec);
+    const foodId = inferFoodId(`${rec.name} ${rec.thai}`);
+    const baseFood = FOOD_DATABASE[foodId];
+
+    if (!baseFood) {
+      setRecommendation(rec);
+      setSelectedAnalysis(null);
+      setSelectedFood({
+        name: rec.name,
+        thaiBase: rec.thai,
+        image: '🍽️',
+        accent: { bg: 'bg-slate-50', text: 'text-slate-700' },
+        steps: []
+      });
+      setView('result');
+      return;
+    }
+
+    setRecommendation(null);
+    setSelectedAnalysis(null);
     setSelectedFood({
-      name: rec.name,
-      thaiBase: rec.thai,
-      image: '🍽️',
-      accent: { bg: 'bg-slate-50', text: 'text-slate-700' }
+      ...baseFood,
+      name: rec.name || baseFood.name,
+      thaiBase: rec.thai || baseFood.thaiBase
     });
-    setView('result');
+    setOrderState(buildOrderStateFromText(baseFood, [rec.name, rec.thai]));
+    setCurrentStepIndex(0);
+    setCustomNote('');
+    setShowAllergyModal(false);
+    setView('ordering');
   };
 
   const selectOption = (stepId, optionId) => {
@@ -320,6 +395,8 @@ export default function App() {
     if (!selectedFood) return '';
 
     const summary = [selectedFood.name.split(' (')[0]];
+
+    if (!selectedFood.steps?.length) return summary.join(' • ');
 
     selectedFood.steps.forEach(step => {
       if (orderState[step.id]) {
@@ -344,7 +421,11 @@ export default function App() {
   };
 
   const finishOrder = () => {
-    if (hasActiveAllergy) {
+    const hasDetectedRisk =
+      selectedAnalysis?.allergyRisks?.length > 0 ||
+      selectedAnalysis?.dietaryRisks?.length > 0;
+
+    if (hasActiveAllergy || hasDetectedRisk) {
       setShowAllergyModal(true);
       return;
     }
@@ -356,6 +437,8 @@ export default function App() {
     setScanSource({ type: 'camera', name: '' });
     setScanPreviewUrl('');
     setScanAnalysis({ status: 'idle', data: null, error: '' });
+    setSelectedAnalysis(null);
+    setRecommendation(null);
     setView('scanning');
   };
 
@@ -404,7 +487,7 @@ export default function App() {
 
     const parts = [`เอา${selectedFood.thaiBase ?? selectedFood.name.split(' ')[0]}`];
 
-    selectedFood.steps.forEach(step => {
+    selectedFood.steps?.forEach(step => {
       if (orderState[step.id]) {
         const option = step.options.find(o => o.id === orderState[step.id]);
         if (option && step.id !== 'spice') parts.push(option.thai);
@@ -427,6 +510,12 @@ export default function App() {
     if (derivedProfile.dietary.vegan) warnings.push('กินเจ/มังสวิรัติ ไม่ใส่น้ำปลาและเนื้อสัตว์');
     if (derivedProfile.dietary.halal) warnings.push('ไม่ใส่หมู');
     if (profileInstructions) warnings.push(`โปรไฟล์อาหาร: ${profileInstructions}`);
+    if (selectedAnalysis?.allergyRisks?.length) {
+      warnings.push(`AI เตือนว่าอาจมี ${selectedAnalysis.allergyRisks.map(risk => risk.name).join(', ')} กรุณาถามร้านก่อน`);
+    }
+    if (selectedAnalysis?.dietaryRisks?.length) {
+      warnings.push(`AI เตือนเรื่อง ${selectedAnalysis.dietaryRisks.map(risk => risk.name || risk.type).join(', ')} กรุณาถามร้านก่อน`);
+    }
 
     const note = customNote.trim();
     const noteText = note ? ` (เพิ่มเติม: ${note})` : '';
@@ -729,8 +818,8 @@ export default function App() {
                   Use result <ArrowRight className="h-4 w-4" />
                 </button>
               ) : (
-                <button type="button" onClick={() => document.getElementById('manual-food-choices')?.scrollIntoView({ behavior: 'smooth', block: 'start' })} className="primary-button">
-                  Choose manually <ArrowRight className="h-4 w-4" />
+                <button type="button" onClick={() => setScanAnalysis({ status: 'idle', data: null, error: '' })} className="primary-button">
+                  Scan again <Camera className="h-4 w-4" />
                 </button>
               )}
             </div>
@@ -748,7 +837,7 @@ export default function App() {
                     >
                       <div className="min-w-0">
                         <p className="font-bold text-slate-900">{rec.name}</p>
-                        <p className="text-xs text-slate-500">{rec.thai}</p>
+                        <p className="text-xs text-slate-500">{rec.thai} • Customize before ordering</p>
                       </div>
                       <ArrowRight className="h-4 w-4 text-slate-300" />
                     </button>
@@ -758,30 +847,6 @@ export default function App() {
             )}
           </div>
         )}
-
-        <section id="manual-food-choices" className="mt-6">
-          <div className="mb-3">
-            <h2 className="text-sm font-bold text-slate-950">Choose manually</h2>
-            <p className="mt-1 text-sm leading-5 text-slate-500">Pick a dish, choose options, then show or play the Thai sentence.</p>
-          </div>
-          <div className="space-y-2">
-            {FOOD_LIST.map(food => (
-              <button
-                key={food.id}
-                type="button"
-                onClick={() => startOrdering(food.id)}
-                className="flex w-full items-center gap-3 rounded-lg border border-slate-200 bg-white p-3 text-left transition-colors hover:bg-slate-50"
-              >
-                <span className={`grid h-11 w-11 shrink-0 place-items-center rounded-lg ${food.accent.bg} text-2xl`}>{food.image}</span>
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate font-semibold text-slate-950">{food.name}</span>
-                  <span className="text-xs text-slate-400">Build Thai order sentence</span>
-                </span>
-                <ArrowRight className="h-4 w-4 text-slate-300" />
-              </button>
-            ))}
-          </div>
-        </section>
 
       </div>
     </div>
@@ -992,6 +1057,7 @@ export default function App() {
               setCurrentStepIndex(0);
               setCustomNote('');
               setRecommendation(null);
+              setSelectedAnalysis(null);
             }}
             className="primary-button"
           >
