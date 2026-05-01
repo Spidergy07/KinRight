@@ -60,6 +60,144 @@ const normalizeRisks = value => {
     .slice(0, 8);
 };
 
+const mergeRisks = value => {
+  const merged = new Map();
+
+  normalizeRisks(value).forEach(risk => {
+    const key = `${risk.type || ''}:${risk.name}`;
+    const existing = merged.get(key);
+
+    if (!existing || risk.confidence >= existing.confidence) {
+      merged.set(key, risk);
+    }
+  });
+
+  return [...merged.values()].slice(0, 8);
+};
+
+const hasAny = (value, patterns) => patterns.some(pattern => pattern.test(value));
+
+const getProfileInstructions = profile =>
+  typeof profile?.instructions === 'string' ? profile.instructions.trim() : '';
+
+const deriveTextConstraints = profile => {
+  const instructions = getProfileInstructions(profile).toLowerCase();
+  const allergyContext = /แพ้|allerg|avoid|no |ไม่กิน|ห้าม|can't|cannot/i.test(instructions);
+
+  return {
+    instructions,
+    allergies: {
+      peanut: allergyContext && hasAny(instructions, [/ถั่ว/i, /peanut/i]),
+      seafood:
+        allergyContext &&
+        hasAny(instructions, [/กุ้ง/i, /ปู/i, /หอย/i, /อาหารทะเล/i, /shrimp/i, /prawn/i, /crab/i, /shellfish/i, /seafood/i]),
+      gluten: allergyContext && hasAny(instructions, [/กลูเตน/i, /แป้งสาลี/i, /wheat/i, /gluten/i])
+    },
+    dietary: {
+      vegan: hasAny(instructions, [/มังสวิรัติ/i, /กินเจ/i, /vegan/i, /vegetarian/i]),
+      halal: hasAny(instructions, [/ฮาลาล/i, /halal/i, /ไม่กินหมู/i, /ไม่เอาหมู/i, /no pork/i])
+    },
+    spice: {
+      none: hasAny(instructions, [/ไม่เผ็ดเลย/i, /ไม่เผ็ด/i, /no chili/i, /no spice/i, /not spicy/i]),
+      mild: hasAny(instructions, [/เผ็ดไม่มาก/i, /เผ็ดน้อย/i, /เผ็ดนิด/i, /less spicy/i, /mild/i])
+    }
+  };
+};
+
+const profileAllergyRisks = constraints => {
+  const risks = [];
+
+  if (constraints.allergies.peanut) {
+    risks.push({ name: 'peanut', confidence: 1, reason: 'Traveler profile says to avoid peanut.' });
+  }
+  if (constraints.allergies.seafood) {
+    risks.push({ name: 'seafood', confidence: 1, reason: 'Traveler profile says to avoid seafood or shellfish.' });
+  }
+  if (constraints.allergies.gluten) {
+    risks.push({ name: 'gluten', confidence: 1, reason: 'Traveler profile says to avoid wheat or gluten.' });
+  }
+
+  return risks;
+};
+
+const profileDietaryRisks = constraints => {
+  const risks = [];
+
+  if (constraints.dietary.vegan) {
+    risks.push({ type: 'vegan', confidence: 1, reason: 'Traveler profile asks for vegetarian or vegan food.' });
+  }
+  if (constraints.dietary.halal) {
+    risks.push({ type: 'halal', confidence: 1, reason: 'Traveler profile asks to avoid pork or eat halal.' });
+  }
+
+  return risks;
+};
+
+const profileQuestions = constraints => {
+  const questions = [];
+
+  if (constraints.allergies.peanut) questions.push('มีถั่วหรือซอสถั่วไหมครับ/คะ?');
+  if (constraints.allergies.seafood) questions.push('มีอาหารทะเล กุ้ง ปู หรือหอยไหมครับ/คะ?');
+  if (constraints.allergies.gluten) questions.push('มีแป้งสาลีหรือกลูเตนไหมครับ/คะ?');
+  if (constraints.dietary.vegan) questions.push('ทำแบบมังสวิรัติ ไม่ใส่เนื้อสัตว์และน้ำปลาได้ไหมครับ/คะ?');
+  if (constraints.dietary.halal) questions.push('มีหมูหรือส่วนผสมจากหมูไหมครับ/คะ?');
+  if (constraints.spice.none) questions.push('ทำไม่เผ็ดเลยได้ไหมครับ/คะ?');
+  else if (constraints.spice.mild) questions.push('ทำเผ็ดน้อยได้ไหมครับ/คะ?');
+
+  return questions;
+};
+
+const thaiSafetyPhrases = constraints => {
+  const phrases = [];
+
+  if (constraints.allergies.peanut) phrases.push('ไม่ใส่ถั่ว');
+  if (constraints.allergies.seafood) phrases.push('ไม่ใส่กุ้งหรืออาหารทะเล');
+  if (constraints.allergies.gluten) phrases.push('ไม่ใส่แป้งสาลีหรือกลูเตน');
+  if (constraints.dietary.vegan) phrases.push('มังสวิรัติ ไม่ใส่เนื้อสัตว์และน้ำปลา');
+  if (constraints.dietary.halal) phrases.push('ไม่ใส่หมู');
+  if (constraints.spice.none) phrases.push('ไม่เผ็ดเลย');
+  else if (constraints.spice.mild) phrases.push('เผ็ดน้อย');
+
+  return phrases;
+};
+
+const containsUnsafePositiveAllergen = (suggestion, constraints) => {
+  const text = String(suggestion || '').toLowerCase();
+
+  if (!text) return false;
+
+  const unsafeMatchers = [
+    constraints.allergies.peanut && { words: [/ถั่ว/i, /peanut/i], safe: /ไม่ใส่ถั่ว|ห้ามใส่ถั่ว|no peanut|without peanut/i },
+    constraints.allergies.seafood && {
+      words: [/กุ้ง/i, /ปู/i, /หอย/i, /อาหารทะเล/i, /shrimp/i, /prawn/i, /crab/i, /shellfish/i, /seafood/i],
+      safe: /ไม่ใส่กุ้ง|ไม่ใส่อาหารทะเล|ห้ามใส่กุ้ง|ห้ามใส่อาหารทะเล|no seafood|no shrimp|without seafood|without shrimp/i
+    },
+    constraints.allergies.gluten && {
+      words: [/กลูเตน/i, /แป้งสาลี/i, /wheat/i, /gluten/i],
+      safe: /ไม่ใส่แป้งสาลี|ไม่ใส่กลูเตน|ห้ามใส่แป้งสาลี|ห้ามใส่กลูเตน|no gluten|without gluten|gluten free/i
+    }
+  ].filter(Boolean);
+
+  return unsafeMatchers.some(item => item.words.some(pattern => pattern.test(text)) && !item.safe.test(text));
+};
+
+const buildThaiOrderSuggestion = (result, constraints) => {
+  const safetyPhrases = thaiSafetyPhrases(constraints);
+  const suggestion = String(result.thaiOrderSuggestion || '').trim();
+
+  if (!safetyPhrases.length) return suggestion;
+
+  const base = suggestion && !containsUnsafePositiveAllergen(suggestion, constraints) ? suggestion : `ขอ${result.thaiName || result.dishName || 'เมนูนี้'}`;
+  const phraseCovered = phrase => {
+    if (phrase === 'เผ็ดน้อย') return /เผ็ดน้อย|เผ็ดนิด|ไม่เผ็ด/i.test(base);
+    if (phrase === 'ไม่เผ็ดเลย') return /ไม่เผ็ด/i.test(base);
+    return base.includes(phrase);
+  };
+  const merged = [base, ...safetyPhrases.filter(phrase => !phraseCovered(phrase))].filter(Boolean);
+
+  return merged.join(' ').trim();
+};
+
 router.post('/analyze', upload.single('image'), async (request, response, next) => {
   let uploadedImage = null;
 
@@ -70,9 +208,12 @@ router.post('/analyze', upload.single('image'), async (request, response, next) 
     }
 
     const profile = parseProfile(request.body.profile);
+    const constraints = deriveTextConstraints(profile);
     uploadedImage = await uploadImageBuffer(request.file);
     const gemini = await analyzeImageWithGemini({ file: request.file, profile });
     const result = gemini.result || {};
+    const allergyRisks = mergeRisks([...(Array.isArray(result.allergyRisks) ? result.allergyRisks : []), ...profileAllergyRisks(constraints)]);
+    const dietaryRisks = mergeRisks([...(Array.isArray(result.dietaryRisks) ? result.dietaryRisks : []), ...profileDietaryRisks(constraints)]);
 
     response.status(201).json({
       id: null,
@@ -84,12 +225,12 @@ router.post('/analyze', upload.single('image'), async (request, response, next) 
         confidence: Number(result.confidence) || 0,
         detectedText: normalizeStrings(result.detectedText),
         likelyIngredients: normalizeStrings(result.likelyIngredients),
-        allergyRisks: normalizeRisks(result.allergyRisks),
-        dietaryRisks: normalizeRisks(result.dietaryRisks),
-        suggestedQuestions: normalizeStrings(result.suggestedQuestions),
-        thaiOrderSuggestion: result.thaiOrderSuggestion || '',
+        allergyRisks,
+        dietaryRisks,
+        suggestedQuestions: normalizeStrings([...(Array.isArray(result.suggestedQuestions) ? result.suggestedQuestions : []), ...profileQuestions(constraints)]),
+        thaiOrderSuggestion: buildThaiOrderSuggestion(result, constraints),
         englishSummary: result.englishSummary || '',
-        safeToOrder: Boolean(result.safeToOrder)
+        safeToOrder: Boolean(result.safeToOrder) && allergyRisks.length === 0 && dietaryRisks.length === 0
       },
       meta: {
         ephemeral: true,

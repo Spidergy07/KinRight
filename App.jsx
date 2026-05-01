@@ -124,18 +124,6 @@ const FOOD_DATABASE = {
   }
 };
 
-const PROFILE_GROUPS = {
-  allergies: [
-    { id: 'peanut', label: 'Peanut', icon: '🥜' },
-    { id: 'seafood', label: 'Seafood', icon: '🦐' },
-    { id: 'gluten', label: 'Gluten', icon: '🌾' }
-  ],
-  dietary: [
-    { id: 'vegan', label: 'Vegan', icon: '🌱' },
-    { id: 'halal', label: 'Halal', icon: '✓' }
-  ]
-};
-
 const FOOD_LIST = Object.values(FOOD_DATABASE);
 const MAX_ANALYSIS_UPLOAD_BYTES = 3.8 * 1024 * 1024;
 const IMAGE_MAX_DIMENSION = 1600;
@@ -183,16 +171,14 @@ const deriveProfileConstraints = profile => {
   const allergyContext = /แพ้|allerg|avoid|no |ไม่กิน|ห้าม|can't|cannot/i.test(instructions);
 
   const allergies = {
-    peanut: Boolean(profile.allergies.peanut) || (allergyContext && hasAny(instructions, [/ถั่ว/i, /peanut/i])),
-    seafood:
-      Boolean(profile.allergies.seafood) ||
-      (allergyContext && hasAny(instructions, [/กุ้ง/i, /ปู/i, /หอย/i, /อาหารทะเล/i, /shrimp/i, /prawn/i, /crab/i, /shellfish/i, /seafood/i])),
-    gluten: Boolean(profile.allergies.gluten) || (allergyContext && hasAny(instructions, [/กลูเตน/i, /แป้งสาลี/i, /wheat/i, /gluten/i]))
+    peanut: allergyContext && hasAny(instructions, [/ถั่ว/i, /peanut/i]),
+    seafood: allergyContext && hasAny(instructions, [/กุ้ง/i, /ปู/i, /หอย/i, /อาหารทะเล/i, /shrimp/i, /prawn/i, /crab/i, /shellfish/i, /seafood/i]),
+    gluten: allergyContext && hasAny(instructions, [/กลูเตน/i, /แป้งสาลี/i, /wheat/i, /gluten/i])
   };
 
   const dietary = {
-    vegan: Boolean(profile.dietary.vegan) || hasAny(instructions, [/มังสวิรัติ/i, /กินเจ/i, /vegan/i, /vegetarian/i]),
-    halal: Boolean(profile.dietary.halal) || hasAny(instructions, [/ฮาลาล/i, /halal/i, /ไม่กินหมู/i, /ไม่เอาหมู/i, /no pork/i])
+    vegan: hasAny(instructions, [/มังสวิรัติ/i, /กินเจ/i, /vegan/i, /vegetarian/i]),
+    halal: hasAny(instructions, [/ฮาลาล/i, /halal/i, /ไม่กินหมู/i, /ไม่เอาหมู/i, /no pork/i])
   };
 
   return { allergies, dietary, instructions: getProfileInstructions(profile) };
@@ -269,29 +255,9 @@ const prepareImageForUpload = async file => {
   throw new Error('Photo is too large for deployment upload. Crop it or take a closer photo.');
 };
 
-const ToggleChip = ({ active, danger, icon, label, onClick }) => (
-  <button
-    type="button"
-    aria-pressed={active}
-    onClick={onClick}
-    className={`flex min-h-11 items-center gap-2 rounded-lg border px-3 py-2 text-sm font-semibold transition-colors ${
-      active
-        ? danger
-          ? 'border-red-200 bg-red-50 text-red-700'
-          : 'border-emerald-200 bg-emerald-50 text-emerald-700'
-        : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'
-    }`}
-  >
-    <span className="grid h-6 w-6 place-items-center rounded-md bg-slate-100 text-base">{icon}</span>
-    {label}
-  </button>
-);
-
 export default function App() {
   const [view, setView] = useState('onboarding');
   const [profile, setProfile] = useState({
-    allergies: { peanut: false, seafood: false, gluten: false },
-    dietary: { vegan: false, halal: false },
     instructions: ''
   });
   const [selectedFood, setSelectedFood] = useState(null);
@@ -303,33 +269,9 @@ export default function App() {
   const [scanPreviewUrl, setScanPreviewUrl] = useState('');
   const [scanAnalysis, setScanAnalysis] = useState({ status: 'idle', data: null, error: '' });
 
-  const profileBadges = useMemo(() => {
-    const allergyBadges = PROFILE_GROUPS.allergies
-      .filter(item => profile.allergies[item.id])
-      .map(item => ({ ...item, tone: 'danger' }));
-    const dietaryBadges = PROFILE_GROUPS.dietary
-      .filter(item => profile.dietary[item.id])
-      .map(item => ({ ...item, tone: 'safe' }));
-    const instructionBadge = getProfileInstructions(profile)
-      ? [{ id: 'instructions', label: 'Custom note', icon: '✎', tone: 'note' }]
-      : [];
-
-    return [...allergyBadges, ...dietaryBadges, ...instructionBadge];
-  }, [profile]);
-
   const derivedProfile = useMemo(() => deriveProfileConstraints(profile), [profile]);
   const profileInstructions = derivedProfile.instructions;
   const hasActiveAllergy = Object.values(derivedProfile.allergies).some(Boolean);
-
-  const toggleProfile = (category, item) => {
-    setProfile(prev => ({
-      ...prev,
-      [category]: {
-        ...prev[category],
-        [item]: !prev[category][item]
-      }
-    }));
-  };
 
   const startOrdering = foodId => {
     setSelectedFood(FOOD_DATABASE[foodId]);
@@ -492,28 +434,12 @@ export default function App() {
   };
 
   const renderProfileBadges = () =>
-    profileBadges.length > 0 ? (
-      profileBadges.map(badge => (
-        <span
-          key={`${badge.tone}-${badge.id}`}
-          className={`inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-semibold ${
-            badge.tone === 'danger'
-              ? 'bg-red-50 text-red-700 ring-1 ring-red-100'
-              : badge.tone === 'note'
-                ? 'bg-orange-50 text-orange-700 ring-1 ring-orange-100'
-                : 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100'
-          }`}
-        >
-          <span>{badge.icon}</span>
-          {badge.label}
-        </span>
-      ))
-    ) : (
-      <span className="inline-flex items-center gap-1 rounded-md bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700 ring-1 ring-emerald-100">
-        <ShieldCheck className="h-3.5 w-3.5" />
-        No restrictions
+    profileInstructions ? (
+      <span className="inline-flex max-w-full items-center gap-1 rounded-md bg-orange-50 px-2.5 py-1 text-xs font-semibold text-orange-700 ring-1 ring-orange-100">
+        <span>✎</span>
+        <span className="truncate">{profileInstructions}</span>
       </span>
-    );
+    ) : null;
 
   const renderOnboarding = () => (
     <div className="soft-canvas flex h-full min-h-0 flex-col overflow-y-auto p-5 pt-[max(1.25rem,env(safe-area-inset-top))] sm:p-6">
@@ -547,43 +473,12 @@ export default function App() {
           <div className="flex items-start justify-between gap-3">
             <div>
               <h2 className="text-lg font-bold text-slate-950">Your food profile</h2>
-              <p className="mt-1 text-sm text-slate-500">Set this once. You can edit it anytime.</p>
+              <p className="mt-1 text-sm text-slate-500">Tell KinRight what to avoid and how you like your food.</p>
             </div>
             <Settings className="h-5 w-5 text-slate-400" />
           </div>
 
-          <div className="mt-5 space-y-5">
-            <div>
-              <label className="mb-2 block text-sm font-semibold text-slate-700">Allergies</label>
-              <div className="flex flex-wrap gap-2">
-                {PROFILE_GROUPS.allergies.map(allergy => (
-                  <ToggleChip
-                    key={allergy.id}
-                    danger
-                    active={profile.allergies[allergy.id]}
-                    icon={allergy.icon}
-                    label={allergy.label}
-                    onClick={() => toggleProfile('allergies', allergy.id)}
-                  />
-                ))}
-              </div>
-            </div>
-
-            <div>
-              <label className="mb-2 block text-sm font-semibold text-slate-700">Dietary needs</label>
-              <div className="flex flex-wrap gap-2">
-                {PROFILE_GROUPS.dietary.map(diet => (
-                  <ToggleChip
-                    key={diet.id}
-                    active={profile.dietary[diet.id]}
-                    icon={diet.icon}
-                    label={diet.label}
-                    onClick={() => toggleProfile('dietary', diet.id)}
-                  />
-                ))}
-              </div>
-            </div>
-
+          <div className="mt-5">
             <label className="block">
               <span className="mb-2 block text-sm font-semibold text-slate-700">Food instruction</span>
               <textarea
