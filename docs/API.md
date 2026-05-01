@@ -68,7 +68,7 @@ Response:
   "meta": {
     "ephemeral": true,
     "storage": "cloudinary-auto-deleted",
-    "model": "gemini-2.5-flash",
+    "model": "gemini-2.5-flash-lite",
     "geminiKeyIndex": 1,
     "geminiAttempts": 1
   }

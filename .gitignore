@@ -21,3 +21,4 @@ local-images/*
 /*.jpg
 /*.jpeg
 /*.webp
+.vercel

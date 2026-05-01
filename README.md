@@ -74,7 +74,7 @@ Open `http://YOUR_LAN_IP:5173` on the phone. The frontend rewrites a localhost A
 | `CLOUDINARY_API_KEY` | Yes | Cloudinary API key. |
 | `CLOUDINARY_API_SECRET` | Yes | Cloudinary API secret. Backend only. |
 | `CLOUDINARY_UPLOAD_FOLDER` | No | Defaults to `streetfood-ai/uploads`. Cloudinary creates it automatically on first upload. |
-| `GEMINI_MODEL` | No | Defaults to `gemini-2.5-flash`. |
+| `GEMINI_MODEL` | No | Defaults to `gemini-2.5-flash-lite` for lower latency and better MVP reliability. |
 | `GEMINI_API_KEY_1..4` | Yes | Add up to 4 keys for failover rotation. |
 | `MAX_UPLOAD_MB` | No | Defaults to `4` to stay under Vercel Function upload limits. |
 | `MAX_GEMINI_RETRIES` | No | Defaults to `4`, capped by available keys. |

@@ -22,7 +22,7 @@ export const env = {
     uploadFolder: process.env.CLOUDINARY_UPLOAD_FOLDER || 'streetfood-ai/uploads'
   },
   gemini: {
-    model: process.env.GEMINI_MODEL || 'gemini-2.5-flash',
+    model: process.env.GEMINI_MODEL || 'gemini-2.5-flash-lite',
     apiKeys: geminiApiKeys,
     maxRetries: Math.min(parseNumber(process.env.MAX_GEMINI_RETRIES, 4), 4)
   },
