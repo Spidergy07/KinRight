@@ -176,6 +176,18 @@ const API_BASE_URL = getApiBaseUrl();
 
 const titleCase = value => value.charAt(0).toUpperCase() + value.slice(1);
 
+const BrandLockup = ({ compact = false }) => (
+  <div className="flex items-center gap-3">
+    <div className="grid h-12 w-12 shrink-0 place-items-center rounded-lg bg-slate-950 text-white shadow-sm">
+      <span className="text-[13px] font-black leading-none tracking-wide">WK</span>
+    </div>
+    <div className="min-w-0">
+      <p className={`${compact ? 'text-lg' : 'text-3xl'} font-extrabold leading-none text-slate-950`}>Wai Korn</p>
+      <p className="mt-1 truncate text-xs font-semibold uppercase tracking-wide text-orange-600">Thai food helper</p>
+    </div>
+  </div>
+);
+
 const loadImageElement = file =>
   new Promise((resolve, reject) => {
     const url = URL.createObjectURL(file);
@@ -481,11 +493,9 @@ export default function App() {
     <div className="soft-canvas flex h-full min-h-0 flex-col overflow-y-auto p-5 pt-[max(1.25rem,env(safe-area-inset-top))] sm:p-6">
       <div className="flex flex-1 flex-col justify-center gap-6">
         <div>
-          <div className="mb-6 grid h-14 w-14 place-items-center rounded-lg bg-orange-100 text-orange-600">
-            <Camera className="h-7 w-7" />
-          </div>
-          <p className="text-sm font-semibold text-orange-600">Travel-friendly Thai ordering</p>
-          <h1 className="mt-2 text-4xl font-extrabold leading-tight text-slate-950">StreetFood AI</h1>
+          <BrandLockup />
+          <p className="mt-6 text-sm font-semibold text-orange-600">Travel-friendly Thai ordering</p>
+          <h1 className="mt-2 text-4xl font-extrabold leading-tight text-slate-950">Order Thai street food with confidence.</h1>
           <p className="mt-3 text-base leading-6 text-slate-600">
             Choose food, avoid unsafe ingredients, and show a clear Thai order to the vendor.
           </p>
@@ -589,7 +599,7 @@ export default function App() {
       <header className="bg-white px-5 pb-5 pt-[max(1.5rem,env(safe-area-inset-top))] sm:px-6 sm:pt-8">
         <div className="flex items-center justify-between gap-3">
           <div className="min-w-0">
-            <p className="text-sm font-semibold text-slate-500">Current area</p>
+            <BrandLockup compact />
             <p className="mt-1 flex items-center gap-1 truncate text-sm font-bold text-slate-900">
               <MapPin className="h-4 w-4 shrink-0 text-orange-500" /> Yaowarat, Bangkok
             </p>
