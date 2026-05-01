@@ -60,6 +60,29 @@ const normalizeRisks = value => {
     .slice(0, 8);
 };
 
+const normalizeRecommendedDishes = value => {
+  if (!Array.isArray(value)) return [];
+
+  const seen = new Set();
+
+  return value
+    .map(item => ({
+      name: String(item?.name || '').trim(),
+      thai: String(item?.thai || '').trim(),
+      sharedIngredients: normalizeStrings(item?.sharedIngredients).slice(0, 6),
+      reason: String(item?.reason || '').trim()
+    }))
+    .filter(item => {
+      if (!item.name && !item.thai) return false;
+
+      const key = `${item.name}:${item.thai}`.toLowerCase();
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    })
+    .slice(0, 5);
+};
+
 const mergeRisks = value => {
   const merged = new Map();
 
@@ -267,6 +290,7 @@ router.post('/analyze', upload.single('image'), async (request, response, next) 
         suggestedQuestions: normalizeStrings([...(Array.isArray(result.suggestedQuestions) ? result.suggestedQuestions : []), ...profileQuestions(constraints)]),
         thaiOrderSuggestion: buildThaiOrderSuggestion(result, constraints),
         englishSummary: result.englishSummary || '',
+        recommendedDishes: normalizeRecommendedDishes(result.recommendedDishes),
         orderInterface: normalizeOrderInterface(result.orderInterface),
         safeToOrder: Boolean(result.safeToOrder) && allergyRisks.length === 0 && dietaryRisks.length === 0
       },

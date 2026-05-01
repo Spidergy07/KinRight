@@ -237,6 +237,16 @@ const BrandLockup = ({ compact = false }) => (
   </div>
 );
 
+const inferFoodId = value => {
+  const text = normalizeSearchText(value);
+
+  if (/som\s*tum|papaya|ส้มตำ|ตำไทย|ตำปลาร้า|ตำแตง/.test(text)) return 'somtum';
+  if (/pad\s*thai|ผัดไทย/.test(text)) return 'padthai';
+  if (/noodle|ก๋วยเตี๋ยว|บะหมี่|เกี๊ยว|wonton/.test(text)) return 'noodles';
+
+  return '';
+};
+
 const buildOrderStateFromText = (food, values = []) => {
   const text = values.map(normalizeSearchText).join(' ');
   const initialState = {};
@@ -338,6 +348,7 @@ export default function App() {
   const [scanSource, setScanSource] = useState({ type: 'camera', name: '' });
   const [scanPreviewUrl, setScanPreviewUrl] = useState('');
   const [scanAnalysis, setScanAnalysis] = useState({ status: 'idle', data: null, error: '' });
+  const [recommendation, setRecommendation] = useState(null);
   const [selectedAnalysis, setSelectedAnalysis] = useState(null);
 
   const derivedProfile = useMemo(() => deriveProfileConstraints(profile), [profile]);
@@ -362,6 +373,7 @@ export default function App() {
     if (!food) return;
 
     setSelectedFood(food);
+    setRecommendation(null);
     setSelectedAnalysis(analysis);
 
     const initialState = buildOrderStateFromText(food, [
@@ -372,6 +384,38 @@ export default function App() {
       ...(analysis?.detectedText || [])
     ]);
     setOrderState(initialState);
+    setCurrentStepIndex(0);
+    setCustomNote('');
+    setShowAllergyModal(false);
+    setView('ordering');
+  };
+
+  const useRecommendation = rec => {
+    const foodId = inferFoodId(`${rec.name} ${rec.thai}`);
+    const baseFood = FOOD_DATABASE[foodId];
+
+    if (!baseFood) {
+      setRecommendation(rec);
+      setSelectedAnalysis(null);
+      setSelectedFood({
+        name: rec.name,
+        thaiBase: rec.thai,
+        image: '🍽️',
+        accent: { bg: 'bg-slate-50', text: 'text-slate-700' },
+        steps: []
+      });
+      setView('result');
+      return;
+    }
+
+    setRecommendation(null);
+    setSelectedAnalysis(null);
+    setSelectedFood({
+      ...baseFood,
+      name: rec.name || baseFood.name,
+      thaiBase: rec.thai || baseFood.thaiBase
+    });
+    setOrderState(buildOrderStateFromText(baseFood, [rec.name, rec.thai, rec.reason, ...(rec.sharedIngredients || [])]));
     setCurrentStepIndex(0);
     setCustomNote('');
     setShowAllergyModal(false);
@@ -429,6 +473,7 @@ export default function App() {
     setScanPreviewUrl('');
     setScanAnalysis({ status: 'idle', data: null, error: '' });
     setSelectedAnalysis(null);
+    setRecommendation(null);
     setView('scanning');
   };
 
@@ -534,6 +579,18 @@ export default function App() {
       window.speechSynthesis.cancel();
       window.speechSynthesis.speak(utterance);
     }
+  };
+
+  const buildRecommendationOrder = rec => {
+    const thai = String(rec?.thai || '').trim();
+    const name = String(rec?.name || '').trim();
+    const main = thai || name || 'Recommended dish';
+
+    return {
+      main,
+      warning: '',
+      full: thai ? `ขอ${thai}` : main
+    };
   };
 
   const isOptionSafe = option => {
@@ -815,14 +872,33 @@ export default function App() {
               )}
             </div>
 
-            {scanAnalysis.data.analysis.suggestedQuestions?.length > 0 && (
-              <div className="mt-5 rounded-lg border border-slate-200 bg-slate-50 p-3">
-                <p className="text-xs font-bold uppercase tracking-wide text-slate-400">Ask vendor</p>
-                <div className="mt-2 space-y-2">
-                  {scanAnalysis.data.analysis.suggestedQuestions.map(question => (
-                    <p key={question} className="text-sm font-semibold leading-5 text-slate-700">
-                      {question}
-                    </p>
+            {scanAnalysis.data.analysis.recommendedDishes?.length > 0 && (
+              <div className="mt-6 border-t border-slate-100 pt-5">
+                <p className="mb-3 text-xs font-bold uppercase tracking-wide text-slate-400">Alternative recommendations</p>
+                <div className="grid gap-2">
+                  {scanAnalysis.data.analysis.recommendedDishes.map((rec, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => useRecommendation(rec)}
+                      className="flex w-full items-center justify-between gap-3 rounded-lg border border-slate-200 bg-white p-3 text-left transition-colors hover:bg-slate-50"
+                    >
+                      <div className="min-w-0">
+                        <p className="font-bold text-slate-900">{rec.name}</p>
+                        <p className="text-xs text-slate-500">{rec.thai} • Customize before ordering</p>
+                        {rec.sharedIngredients?.length > 0 && (
+                          <div className="mt-2 flex flex-wrap gap-1.5">
+                            {rec.sharedIngredients.map(ingredient => (
+                              <span key={ingredient} className="rounded-md bg-orange-50 px-2 py-0.5 text-[11px] font-semibold text-orange-700">
+                                {ingredient}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                        {rec.reason && <p className="mt-2 text-xs leading-5 text-slate-500">{rec.reason}</p>}
+                      </div>
+                      <ArrowRight className="h-4 w-4 text-slate-300" />
+                    </button>
                   ))}
                 </div>
               </div>
@@ -984,12 +1060,12 @@ export default function App() {
   const renderResult = () => {
     if (!selectedFood) return null;
 
-    const orderData = generateThaiOrder();
+    const orderData = recommendation ? buildRecommendationOrder(recommendation) : generateThaiOrder();
 
     return (
       <div className="soft-canvas flex h-full min-h-0 flex-col animate-in fade-in duration-200">
         <header className="flex items-center justify-between border-b border-slate-200 bg-white/90 p-5 pt-[max(1rem,env(safe-area-inset-top))] backdrop-blur sm:p-6">
-          <button type="button" aria-label="Back to order" onClick={() => setView('ordering')} className="icon-button">
+          <button type="button" aria-label="Back to order" onClick={() => setView(recommendation ? 'scanning' : 'ordering')} className="icon-button">
             <ChevronLeft className="h-6 w-6" />
           </button>
           <span className="font-bold text-slate-950">Your order</span>
@@ -1017,7 +1093,7 @@ export default function App() {
             <div className={`grid h-12 w-12 place-items-center rounded-lg ${selectedFood.accent.bg} text-2xl`}>{selectedFood.image}</div>
             <div className="min-w-0">
               <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">English check</p>
-              <p className="mt-1 font-semibold leading-5 text-slate-800">{getEnglishSummary()}</p>
+              <p className="mt-1 font-semibold leading-5 text-slate-800">{recommendation ? recommendation.name : getEnglishSummary()}</p>
             </div>
           </div>
 
@@ -1026,18 +1102,6 @@ export default function App() {
             Play Thai audio
           </button>
 
-          {selectedAnalysis?.suggestedQuestions?.length > 0 && (
-            <div className="rounded-lg border border-slate-200 bg-white p-4">
-              <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Ask vendor</p>
-              <div className="mt-2 space-y-2">
-                {selectedAnalysis.suggestedQuestions.map(question => (
-                  <p key={question} className="text-sm font-semibold leading-5 text-slate-700">
-                    {question}
-                  </p>
-                ))}
-              </div>
-            </div>
-          )}
         </div>
 
         <div className="grid gap-3 p-5 pb-[max(1rem,env(safe-area-inset-bottom))] sm:p-6">
@@ -1049,6 +1113,7 @@ export default function App() {
               setOrderState({});
               setCurrentStepIndex(0);
               setCustomNote('');
+              setRecommendation(null);
               setSelectedAnalysis(null);
             }}
             className="primary-button"
