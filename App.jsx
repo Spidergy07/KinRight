@@ -273,9 +273,26 @@ export default function App() {
   const profileInstructions = derivedProfile.instructions;
   const hasActiveAllergy = Object.values(derivedProfile.allergies).some(Boolean);
 
-  const startOrdering = foodId => {
-    setSelectedFood(FOOD_DATABASE[foodId]);
-    setOrderState({});
+  const startOrdering = (foodId, analysis = null) => {
+    const food = FOOD_DATABASE[foodId];
+    if (!food) return;
+
+    setSelectedFood(food);
+    
+    const initialState = {};
+    if (analysis?.likelyIngredients) {
+      const ingredients = analysis.likelyIngredients.map(i => i.toLowerCase());
+      food.steps.forEach(step => {
+        const match = step.options.find(opt => 
+          ingredients.includes(opt.label.toLowerCase()) || 
+          ingredients.includes(opt.thai.toLowerCase()) ||
+          ingredients.some(i => i.includes(opt.thai.toLowerCase()))
+        );
+        if (match) initialState[step.id] = match.id;
+      });
+    }
+
+    setOrderState(initialState);
     setCurrentStepIndex(0);
     setCustomNote('');
     setShowAllergyModal(false);
@@ -705,12 +722,25 @@ export default function App() {
               </div>
             )}
 
+            {scanAnalysis.data.analysis.likelyIngredients?.length > 0 && (
+              <div className="mt-4">
+                <p className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-400">Detected ingredients</p>
+                <div className="flex flex-wrap gap-2">
+                  {scanAnalysis.data.analysis.likelyIngredients.map(ing => (
+                    <span key={ing} className="rounded-full bg-slate-100 px-3 py-1 text-sm font-semibold text-slate-600">
+                      {ing}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <div className="mt-4 grid gap-3 sm:grid-cols-2">
               <button type="button" onClick={() => setView('onboarding')} className="secondary-button w-full">
                 Edit profile
               </button>
               {FOOD_DATABASE[scanAnalysis.data.analysis.dishId] ? (
-                <button type="button" onClick={() => startOrdering(scanAnalysis.data.analysis.dishId)} className="primary-button">
+                <button type="button" onClick={() => startOrdering(scanAnalysis.data.analysis.dishId, scanAnalysis.data.analysis)} className="primary-button">
                   Use result <ArrowRight className="h-4 w-4" />
                 </button>
               ) : (
