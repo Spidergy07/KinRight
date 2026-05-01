@@ -7,7 +7,7 @@ const parseNumber = (value, fallback) => {
   return Number.isFinite(number) && number > 0 ? number : fallback;
 };
 
-const geminiApiKeys = [1, 2, 3, 4]
+const geminiApiKeys = [1, 2, 3, 4, 5]
   .map(index => process.env[`GEMINI_API_KEY_${index}`]?.trim())
   .filter(Boolean);
 
@@ -24,7 +24,7 @@ export const env = {
   gemini: {
     model: process.env.GEMINI_MODEL || 'gemini-2.5-flash-lite',
     apiKeys: geminiApiKeys,
-    maxRetries: Math.min(parseNumber(process.env.MAX_GEMINI_RETRIES, 4), 4)
+    maxRetries: Math.min(parseNumber(process.env.MAX_GEMINI_RETRIES, 5), 5)
   },
   maxUploadMb: parseNumber(process.env.MAX_UPLOAD_MB, 4)
 };

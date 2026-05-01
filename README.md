@@ -6,7 +6,7 @@ KinRight is a mobile-first MVP for travelers ordering Thai street food. The name
 
 - React + Vite + Tailwind frontend
 - Express API for image analysis, deployable as Vercel Functions
-- Gemini key rotation with `GEMINI_API_KEY_1` to `GEMINI_API_KEY_4`
+- Gemini key rotation with `GEMINI_API_KEY_1` to `GEMINI_API_KEY_5`
 - Temporary Cloudinary upload for image processing
 - No database and no history storage in the MVP
 - Committed app images live in `src/assets/images/`; private test uploads live in ignored `local-images/`
@@ -75,9 +75,9 @@ Open `http://YOUR_LAN_IP:5173` on the phone. The frontend rewrites a localhost A
 | `CLOUDINARY_API_SECRET` | Yes | Cloudinary API secret. Backend only. |
 | `CLOUDINARY_UPLOAD_FOLDER` | No | Defaults to `kinright/uploads`. Cloudinary creates it automatically on first upload. |
 | `GEMINI_MODEL` | No | Defaults to `gemini-2.5-flash-lite` for lower latency and better MVP reliability. |
-| `GEMINI_API_KEY_1..4` | Yes | Add up to 4 keys for failover rotation. |
+| `GEMINI_API_KEY_1..5` | Yes | Add up to 5 keys for failover rotation. |
 | `MAX_UPLOAD_MB` | No | Defaults to `4` to stay under Vercel Function upload limits. |
-| `MAX_GEMINI_RETRIES` | No | Defaults to `4`, capped by available keys. |
+| `MAX_GEMINI_RETRIES` | No | Defaults to `5`, capped by available keys. |
 
 ## Project Structure
 

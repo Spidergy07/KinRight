@@ -158,7 +158,7 @@ const shouldRotateKey = status => [401, 403, 429, 500, 502, 503, 504].includes(s
 
 export const analyzeImageWithGemini = async ({ file, profile }) => {
   if (!env.gemini.apiKeys.length) {
-    throw new Error('At least one GEMINI_API_KEY_1..4 value is required.');
+    throw new Error('At least one GEMINI_API_KEY_1..5 value is required.');
   }
 
   const attemptsLimit = Math.min(env.gemini.maxRetries, env.gemini.apiKeys.length);
