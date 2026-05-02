@@ -352,7 +352,7 @@ export default function App() {
   const [selectedAnalysis, setSelectedAnalysis] = useState(null);
   const [ttsState, setTtsState] = useState({ status: 'idle', error: '' });
   const audioRef = useRef(null);
-  const audioUrlRef = useRef('');
+  const ttsCacheRef = useRef(new Map());
 
   const derivedProfile = useMemo(() => deriveProfileConstraints(profile), [profile]);
   const profileInstructions = derivedProfile.instructions;
@@ -363,9 +363,8 @@ export default function App() {
       if (audioRef.current) {
         audioRef.current.pause();
       }
-      if (audioUrlRef.current) {
-        URL.revokeObjectURL(audioUrlRef.current);
-      }
+      ttsCacheRef.current.forEach(url => URL.revokeObjectURL(url));
+      ttsCacheRef.current.clear();
     };
   }, []);
 
@@ -583,7 +582,35 @@ export default function App() {
       return;
     }
 
+    const playAudioUrl = async (audioUrl, cached = false) => {
+      if (audioRef.current) {
+        audioRef.current.pause();
+      }
+
+      const audio = new Audio(audioUrl);
+      audioRef.current = audio;
+      audio.onended = () => setTtsState({ status: 'idle', error: '' });
+      audio.onerror = () => setTtsState({ status: 'error', error: 'Could not play generated Thai audio.' });
+
+      await audio.play();
+      setTtsState({ status: 'playing', error: cached ? 'Using cached audio.' : '' });
+    };
+
+    const cachedAudioUrl = ttsCacheRef.current.get(speechText);
+    if (cachedAudioUrl) {
+      setTtsState({ status: 'loading', error: 'Using cached audio.' });
+      try {
+        await playAudioUrl(cachedAudioUrl, true);
+      } catch (error) {
+        ttsCacheRef.current.delete(speechText);
+        URL.revokeObjectURL(cachedAudioUrl);
+        setTtsState({ status: 'error', error: 'Could not replay cached Thai audio. Tap again to regenerate.' });
+      }
+      return;
+    }
+
     setTtsState({ status: 'loading', error: '' });
+    let generatedAudioUrl = '';
 
     try {
       const response = await fetch(`${API_BASE_URL}/api/tts`, {
@@ -599,23 +626,23 @@ export default function App() {
 
       const audioBlob = await response.blob();
       const audioUrl = URL.createObjectURL(audioBlob);
+      generatedAudioUrl = audioUrl;
 
-      if (audioRef.current) {
-        audioRef.current.pause();
+      ttsCacheRef.current.set(speechText, audioUrl);
+      if (ttsCacheRef.current.size > 5) {
+        const oldestKey = ttsCacheRef.current.keys().next().value;
+        const oldestUrl = ttsCacheRef.current.get(oldestKey);
+        ttsCacheRef.current.delete(oldestKey);
+        URL.revokeObjectURL(oldestUrl);
       }
-      if (audioUrlRef.current) {
-        URL.revokeObjectURL(audioUrlRef.current);
-      }
 
-      const audio = new Audio(audioUrl);
-      audioRef.current = audio;
-      audioUrlRef.current = audioUrl;
-      audio.onended = () => setTtsState({ status: 'idle', error: '' });
-      audio.onerror = () => setTtsState({ status: 'error', error: 'Could not play generated Thai audio.' });
-
-      await audio.play();
-      setTtsState({ status: 'playing', error: '' });
+      await playAudioUrl(audioUrl);
     } catch (error) {
+      if (generatedAudioUrl) {
+        ttsCacheRef.current.delete(speechText);
+        URL.revokeObjectURL(generatedAudioUrl);
+      }
+
       const rawMessage = error.message || 'Thai audio generation failed.';
       const message =
         rawMessage === 'Load failed' || rawMessage === 'Failed to fetch'
@@ -1168,7 +1195,7 @@ export default function App() {
           </button>
           {ttsState.status === 'playing' && (
             <p className="text-center text-xs font-semibold leading-5 text-slate-500" aria-live="polite">
-              Playing generated Thai audio...
+              {ttsState.error || 'Playing generated Thai audio...'}
             </p>
           )}
           {ttsState.status === 'error' && (
