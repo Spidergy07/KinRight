@@ -7,7 +7,8 @@ const parseNumber = (value, fallback) => {
   return Number.isFinite(number) && number > 0 ? number : fallback;
 };
 
-const geminiApiKeys = [1, 2, 3, 4, 5, 6, 7]
+// Prefer newly added keys first so cold serverless starts do not keep hitting exhausted older keys.
+const geminiApiKeys = [6, 7, 1, 2, 3, 4, 5]
   .map(index => process.env[`GEMINI_API_KEY_${index}`]?.trim())
   .filter(Boolean);
 

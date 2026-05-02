@@ -1,7 +1,7 @@
 import { env } from '../config/env.js';
 
-let nextKeyIndex = 0;
-let nextTtsKeyIndex = 0;
+let nextKeyIndex = env.gemini.apiKeys.length ? Math.floor(Math.random() * env.gemini.apiKeys.length) : 0;
+let nextTtsKeyIndex = env.gemini.apiKeys.length ? Math.floor(Math.random() * env.gemini.apiKeys.length) : 0;
 
 const geminiEndpoint = model =>
   `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`;
