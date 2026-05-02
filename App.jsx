@@ -950,7 +950,7 @@ export default function App() {
 
             {scanAnalysis.data.analysis.recommendedDishes?.length > 0 && (
               <div className="mt-6 border-t border-slate-100 pt-5">
-                <p className="mb-3 text-xs font-bold uppercase tracking-wide text-slate-400">Alternative recommendations</p>
+                <p className="mb-3 text-xs font-bold uppercase tracking-wide text-slate-400">Recommendations</p>
                 <div className="grid gap-2">
                   {scanAnalysis.data.analysis.recommendedDishes.map((rec, idx) => (
                     <button

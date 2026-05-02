@@ -65,8 +65,8 @@ RULES:
 3. Use practical Thai street-food ordering, not literal translation.
 4. If unclear, use dishId "unknown" and confidence below 0.5.
 5. thaiOrderSuggestion must be natural Thai text usable to show a vendor.
-6. Always generate 2-3 recommendedDishes for the result screen.
-7. recommendedDishes must be alternative Thai menu items that use the same main ingredient, similar ingredients, or a similar ordering context. Include sharedIngredients and reason.
+6. Always generate 5 recommendedDishes for the result screen.
+7. recommendedDishes must be Thai menu recommendations that use the same main ingredient, similar ingredients, or a similar ordering context. Include sharedIngredients and reason.
 8. Do not recommend anything unsafe for the traveler profile.`;
 };
 
