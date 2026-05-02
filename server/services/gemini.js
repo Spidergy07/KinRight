@@ -281,6 +281,10 @@ export const analyzeImageWithGemini = async ({ file, profile }) => {
       }
 
       if (!error.retryable || attemptNumber >= attemptsLimit - 1) {
+        if (error.retryable) {
+          nextKeyIndex = (keyIndex + 1) % env.gemini.apiKeys.length;
+        }
+
         const details = attempts.map(item => `key ${item.keyIndex}: ${item.message}`).join('; ');
         throw new Error(`Gemini analysis failed after ${attempts.length} attempt(s). ${details}`);
       }

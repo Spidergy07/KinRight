@@ -22,11 +22,11 @@ export const env = {
     uploadFolder: process.env.CLOUDINARY_UPLOAD_FOLDER || 'kinright/uploads'
   },
   gemini: {
-    model: process.env.GEMINI_MODEL || 'gemini-2.0-flash-lite',
+    model: process.env.GEMINI_MODEL || 'gemini-2.5-flash-lite',
     ttsModel: process.env.GEMINI_TTS_MODEL || 'gemini-3.1-flash-tts-preview',
     ttsVoice: process.env.GEMINI_TTS_VOICE || 'Kore',
     apiKeys: geminiApiKeys,
-    maxRetries: Math.min(parseNumber(process.env.MAX_GEMINI_RETRIES, 2), 5)
+    maxRetries: Math.min(parseNumber(process.env.MAX_GEMINI_RETRIES, 1), 5)
   },
   maxUploadMb: parseNumber(process.env.MAX_UPLOAD_MB, 4)
 };
