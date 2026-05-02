@@ -27,7 +27,7 @@ export const env = {
     ttsModel: process.env.GEMINI_TTS_MODEL || 'gemini-3.1-flash-tts-preview',
     ttsVoice: process.env.GEMINI_TTS_VOICE || 'Kore',
     apiKeys: geminiApiKeys,
-    maxRetries: Math.min(parseNumber(process.env.MAX_GEMINI_RETRIES, 1), 7)
+    maxRetries: Math.min(parseNumber(process.env.MAX_GEMINI_RETRIES, 2), 7)
   },
   maxUploadMb: parseNumber(process.env.MAX_UPLOAD_MB, 4)
 };

@@ -81,7 +81,7 @@ Open `http://YOUR_LAN_IP:5173` on the phone. The frontend rewrites a localhost A
 | `GEMINI_TTS_VOICE` | No | Defaults to `Kore`. Used by Gemini TTS. |
 | `GEMINI_API_KEY_1..7` | Yes | Add up to 7 keys for failover rotation. |
 | `MAX_UPLOAD_MB` | No | Defaults to `4` to stay under Vercel Function upload limits. |
-| `MAX_GEMINI_RETRIES` | No | Defaults to `1`, capped by available keys. Keep this low so one scan does not burn every key. |
+| `MAX_GEMINI_RETRIES` | No | Defaults to `2`, capped by available keys. Keep this low so one scan does not burn every key. |
 
 ## Project Structure
 
