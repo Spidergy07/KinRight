@@ -600,7 +600,7 @@ export default function App() {
     return {
       main,
       warning: '',
-      full: thai ? `ขอ${thai}` : main
+      speech: thai ? `ขอ${thai}` : main
     };
   };
 
@@ -1123,7 +1123,7 @@ export default function App() {
             </div>
           </div>
 
-          <button type="button" onClick={() => speakText(orderData.speech)} className="primary-button min-h-16">
+          <button type="button" onClick={() => speakText(orderData.speech || orderData.main)} className="primary-button min-h-16">
             <Volume2 className="h-6 w-6" />
             Play Thai audio
           </button>
