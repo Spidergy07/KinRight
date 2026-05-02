@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   AlertTriangle,
   ArrowRight,
@@ -350,9 +350,6 @@ export default function App() {
   const [scanAnalysis, setScanAnalysis] = useState({ status: 'idle', data: null, error: '' });
   const [recommendation, setRecommendation] = useState(null);
   const [selectedAnalysis, setSelectedAnalysis] = useState(null);
-  const [speechStatus, setSpeechStatus] = useState('');
-  const speechUtteranceRef = useRef(null);
-  const speechStartTimerRef = useRef(null);
 
   const derivedProfile = useMemo(() => deriveProfileConstraints(profile), [profile]);
   const profileInstructions = derivedProfile.instructions;
@@ -368,7 +365,6 @@ export default function App() {
 
     return () => {
       window.speechSynthesis.onvoiceschanged = null;
-      if (speechStartTimerRef.current) window.clearTimeout(speechStartTimerRef.current);
     };
   }, []);
 
@@ -581,52 +577,18 @@ export default function App() {
   const speakText = text => {
     const speechText = String(text || '').trim();
 
-    if (!speechText) {
-      setSpeechStatus('No Thai order text to read.');
-      return;
+    if (speechText && typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      const utterance = new SpeechSynthesisUtterance(speechText);
+      const thaiVoice = getThaiSpeechVoice();
+
+      utterance.lang = 'th-TH';
+      if (thaiVoice) utterance.voice = thaiVoice;
+      utterance.rate = 0.78;
+      utterance.pitch = 1;
+      utterance.volume = 1;
+      window.speechSynthesis.cancel();
+      window.speechSynthesis.speak(utterance);
     }
-
-    if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
-      setSpeechStatus('This browser does not support text-to-speech.');
-      return;
-    }
-
-    const synth = window.speechSynthesis;
-    const utterance = new SpeechSynthesisUtterance(speechText);
-    const thaiVoice = getThaiSpeechVoice();
-
-    utterance.lang = 'th-TH';
-    if (thaiVoice) utterance.voice = thaiVoice;
-    utterance.rate = 0.78;
-    utterance.pitch = 1;
-    utterance.volume = 1;
-    utterance.onstart = () => setSpeechStatus('Playing Thai audio...');
-    utterance.onend = () => setSpeechStatus('');
-    utterance.onerror = event => {
-      const error = event.error ? ` (${event.error})` : '';
-      setSpeechStatus(`Audio could not play${error}. Tap again or check browser sound settings.`);
-    };
-
-    speechUtteranceRef.current = utterance;
-    setSpeechStatus(`Ready to read: ${speechText}`);
-
-    if (speechStartTimerRef.current) {
-      window.clearTimeout(speechStartTimerRef.current);
-      speechStartTimerRef.current = null;
-    }
-
-    const startSpeech = () => {
-      if (synth.paused) synth.resume();
-      synth.speak(utterance);
-    };
-
-    if (synth.speaking || synth.pending) {
-      synth.cancel();
-      speechStartTimerRef.current = window.setTimeout(startSpeech, 80);
-      return;
-    }
-
-    startSpeech();
   };
 
   const buildRecommendationOrder = rec => {
@@ -1165,11 +1127,6 @@ export default function App() {
             <Volume2 className="h-6 w-6" />
             Play Thai audio
           </button>
-          {speechStatus && (
-            <p className="text-center text-xs font-semibold leading-5 text-slate-500" aria-live="polite">
-              {speechStatus}
-            </p>
-          )}
 
         </div>
 
