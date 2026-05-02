@@ -50,91 +50,20 @@ const getTravelerInstructions = profile =>
 const buildPrompt = profile => {
   const travelerInstructions = getTravelerInstructions(profile);
 
-  return `You are an AI Food Ordering Assistant designed for tourists ordering street food.
+  return `Analyze this Thai street food/menu image for a tourist ordering safely.
 
-Your task is to analyze the given visual context from an image of a food stall, menu, or food item and generate a structured ordering interface.
+Traveler profile: ${travelerInstructions || 'none'}
 
--------------------------
-INPUT:
-1. Visual context from the uploaded image:
-   - what the stall sells
-   - visible menu text
-   - detected food items and likely ingredients
-2. User profile as plain text:
-   - allergies, dietary restrictions, and spice tolerance
-
-System profile instruction from the traveler:
-${travelerInstructions || '(none)'}
-
-Traveler profile:
-${JSON.stringify(profile || {}, null, 2)}
-
--------------------------
-GOAL:
-
-Determine whether the food requires customization or not.
-
-- If the food has multiple components or ordering steps, such as noodles, som tam, curry, or pad thai:
-  Generate structured choices in orderInterface.steps.
-
-- If the food is simple or has no normal customization, such as sausage, grilled skewers, or fried snacks:
-  Do not generate choices.
-  Return a simple order option in orderInterface.options.
-
--------------------------
-KNOWN APP DISH IDS:
-
-- noodles: noodle soup / ก๋วยเตี๋ยว
-- somtum: papaya salad / ส้มตำ
-- padthai: pad thai / ผัดไทย
-- unknown: use this if not confident
-
--------------------------
-OUTPUT FORMAT:
-
-Return JSON only. No markdown. Use this exact shape:
+Return JSON only:
 ${foodSchemaHint}
 
--------------------------
 RULES:
-
-1. Safety is the highest priority.
-2. NEVER include options that violate the user's constraints:
-   - Remove ingredients that conflict with allergies.
-   - Respect dietary rules strictly.
-   - Adjust spice options based on tolerance.
-3. If uncertainty exists:
-   - Provide best guess but keep options simple.
-   - If image is unclear, use dishId "unknown" and confidence below 0.5.
-4. Keep orderInterface minimal and intuitive, max 3-4 steps.
-5. Focus on how Thai street food is actually ordered, not literal translation.
-6. Generate recommendedDishes as structured menu suggestions when the detected food is unknown, not directly supported by the app, or when useful similar menu choices are visible.
-7. Each recommendedDishes item must follow one of these formats:
-   Customizable food:
-   {
-     "type": "customizable",
-     "dish": "<detected or suggested dish>",
-     "thaiDish": "<Thai dish name>",
-     "steps": [
-       {"step": "<step name>", "options": ["option1", "option2"]}
-     ],
-     "options": [],
-     "safetyWarnings": []
-   }
-   Simple food:
-   {
-     "type": "simple",
-     "dish": "<detected or suggested item>",
-     "thaiDish": "<Thai item name>",
-     "steps": [],
-     "options": ["standard order"],
-     "safetyWarnings": []
-   }
-8. For recommendedDishes, prioritize realistic Thai street food ordering and remove anything unsafe for the user.
-9. suggestedQuestions must contain short questions the tourist can ask the vendor when safety or ingredients are uncertain.
-10. thaiOrderSuggestion must be natural Thai text usable to show a vendor.
-11. confidence must be 0 to 1.
-12. If the image looks like a menu, include visible menu text in detectedText.`;
+1. Safety first. Never include options that violate allergy/diet/spice constraints.
+2. Keep it concise. Max 3 order steps, max 4 options per step, max 3 recommendedDishes.
+3. Use practical Thai street-food ordering, not literal translation.
+4. If unclear, use dishId "unknown" and confidence below 0.5.
+5. thaiOrderSuggestion must be natural Thai text usable to show a vendor.
+6. recommendedDishes should be realistic similar items only when useful.`;
 };
 
 const extractText = data => {
@@ -302,6 +231,11 @@ export const analyzeImageWithGemini = async ({ file, profile }) => {
           'x-goog-api-key': apiKey
         },
         body: JSON.stringify({
+          generationConfig: {
+            temperature: 0.2,
+            maxOutputTokens: 1200,
+            responseMimeType: 'application/json'
+          },
           contents: [
             {
               parts: [

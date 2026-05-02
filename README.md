@@ -76,12 +76,12 @@ Open `http://YOUR_LAN_IP:5173` on the phone. The frontend rewrites a localhost A
 | `CLOUDINARY_API_KEY` | Yes | Cloudinary API key. |
 | `CLOUDINARY_API_SECRET` | Yes | Cloudinary API secret. Backend only. |
 | `CLOUDINARY_UPLOAD_FOLDER` | No | Defaults to `kinright/uploads`. Cloudinary creates it automatically on first upload. |
-| `GEMINI_MODEL` | No | Defaults to `gemini-2.5-flash-lite` for lower latency and better MVP reliability. |
+| `GEMINI_MODEL` | No | Defaults to `gemini-2.0-flash-lite` for lower quota pressure in MVP demos. |
 | `GEMINI_TTS_MODEL` | No | Defaults to `gemini-3.1-flash-tts-preview` for generated Thai order audio. |
 | `GEMINI_TTS_VOICE` | No | Defaults to `Kore`. Used by Gemini TTS. |
 | `GEMINI_API_KEY_1..5` | Yes | Add up to 5 keys for failover rotation. |
 | `MAX_UPLOAD_MB` | No | Defaults to `4` to stay under Vercel Function upload limits. |
-| `MAX_GEMINI_RETRIES` | No | Defaults to `5`, capped by available keys. |
+| `MAX_GEMINI_RETRIES` | No | Defaults to `2`, capped by available keys. Keep this low so one scan does not burn every key. |
 
 ## Project Structure
 

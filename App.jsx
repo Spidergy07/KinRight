@@ -155,8 +155,8 @@ const FOOD_DATABASE = {
   }
 };
 
-const MAX_ANALYSIS_UPLOAD_BYTES = 3.8 * 1024 * 1024;
-const IMAGE_MAX_DIMENSION = 1600;
+const MAX_ANALYSIS_UPLOAD_BYTES = 900 * 1024;
+const IMAGE_MAX_DIMENSION = 960;
 const THAI_VOICE_PREFERENCES = [
   /siri/i,
   /kanya/i,
@@ -310,9 +310,13 @@ const canvasToBlob = (canvas, quality) =>
 
 const prepareImageForUpload = async file => {
   if (!file.type.startsWith('image/')) return file;
-  if (file.size <= MAX_ANALYSIS_UPLOAD_BYTES) return file;
 
   const image = await loadImageElement(file);
+  const shouldOptimize =
+    file.size > MAX_ANALYSIS_UPLOAD_BYTES || Math.max(image.naturalWidth, image.naturalHeight) > IMAGE_MAX_DIMENSION || file.type !== 'image/jpeg';
+
+  if (!shouldOptimize) return file;
+
   const scale = Math.min(1, IMAGE_MAX_DIMENSION / Math.max(image.naturalWidth, image.naturalHeight));
   const canvas = document.createElement('canvas');
   canvas.width = Math.max(1, Math.round(image.naturalWidth * scale));
@@ -323,7 +327,7 @@ const prepareImageForUpload = async file => {
 
   context.drawImage(image, 0, 0, canvas.width, canvas.height);
 
-  for (const quality of [0.82, 0.72, 0.62, 0.52]) {
+  for (const quality of [0.72, 0.62, 0.52, 0.45]) {
     const blob = await canvasToBlob(canvas, quality);
 
     if (blob.size <= MAX_ANALYSIS_UPLOAD_BYTES) {
