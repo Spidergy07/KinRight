@@ -2,6 +2,8 @@
 
 KinRight is a mobile-first MVP for travelers ordering Thai street food. The name plays on "Eat Right" and "กินไรดี": eat correctly, safely, and to your taste.
 
+> 🚀 **This project is a proud submission for the SuperAI Engineer Season 6 Hackathon.**
+
 ## Current Scope
 
 - React + Vite + Tailwind frontend
@@ -100,3 +102,10 @@ docs/                         # API, architecture, and deployment notes
 ```
 
 Local screenshots and test uploads are ignored under `local-images/`. Put committed app assets under `src/assets/images/`.
+
+## Team members
+* [**600284 ธนเดช**](https://github.com/Spidergy07) - The Scamper
+* [**600515 ดนัยเดช**](https://github.com/nungsorb) - The Scamper
+* [**602539 ภูรินทร์**](https://github.com/2005fpp) - KidDee
+* [**605069 รชา**](https://github.com/FighterPaul) - KidDee
+* [**606156 อดิสรณ์**](https://github.com/DarkTouiZ) - Machima
