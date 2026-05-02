@@ -23,6 +23,8 @@ export const env = {
   },
   gemini: {
     model: process.env.GEMINI_MODEL || 'gemini-2.5-flash-lite',
+    ttsModel: process.env.GEMINI_TTS_MODEL || 'gemini-3.1-flash-tts-preview',
+    ttsVoice: process.env.GEMINI_TTS_VOICE || 'Kore',
     apiKeys: geminiApiKeys,
     maxRetries: Math.min(parseNumber(process.env.MAX_GEMINI_RETRIES, 5), 5)
   },
@@ -34,5 +36,6 @@ export const getConfigStatus = () => ({
   imageRetention: 'deleted-after-analysis',
   cloudinary: Boolean(env.cloudinary.cloudName && env.cloudinary.apiKey && env.cloudinary.apiSecret),
   geminiKeys: env.gemini.apiKeys.length,
+  geminiTtsModel: env.gemini.ttsModel,
   maxUploadMb: env.maxUploadMb
 });

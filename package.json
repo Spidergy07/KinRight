@@ -14,7 +14,7 @@
     "start:api": "node server/index.js",
     "build": "vite build",
     "preview": "vite preview --host 0.0.0.0",
-    "check": "npm run build && node --check server/app.js && node --check server/index.js && node --check server/config/env.js && node --check server/config/cloudinary.js && node --check server/routes/analysis.js && node --check server/services/cloudinaryUpload.js && node --check server/services/gemini.js && node --check server/scripts/smoke-test.js && node --check api/index.js && node --check 'api/[...path].js'",
+    "check": "npm run build && node --check server/app.js && node --check server/index.js && node --check server/config/env.js && node --check server/config/cloudinary.js && node --check server/routes/analysis.js && node --check server/routes/tts.js && node --check server/services/cloudinaryUpload.js && node --check server/services/gemini.js && node --check server/scripts/smoke-test.js && node --check api/index.js && node --check \"api/[...path].js\"",
     "test": "npm run check",
     "test:api": "node server/scripts/smoke-test.js"
   },

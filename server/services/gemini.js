@@ -1,9 +1,14 @@
 import { env } from '../config/env.js';
 
 let nextKeyIndex = 0;
+let nextTtsKeyIndex = 0;
 
 const geminiEndpoint = model =>
   `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`;
+
+const PCM_SAMPLE_RATE = 24000;
+const PCM_CHANNELS = 1;
+const PCM_BITS_PER_SAMPLE = 16;
 
 const foodSchemaHint = `{
   "dishId": "noodles | somtum | padthai | unknown",
@@ -155,6 +160,126 @@ export const parseGeminiJson = text => {
 };
 
 const shouldRotateKey = status => [401, 403, 429, 500, 502, 503, 504].includes(status);
+
+const extractInlineAudio = data => {
+  const parts = data?.candidates?.[0]?.content?.parts || [];
+  return parts.find(part => part.inlineData?.data || part.inline_data?.data)?.inlineData?.data ||
+    parts.find(part => part.inlineData?.data || part.inline_data?.data)?.inline_data?.data ||
+    '';
+};
+
+const pcmToWav = pcmBuffer => {
+  const byteRate = (PCM_SAMPLE_RATE * PCM_CHANNELS * PCM_BITS_PER_SAMPLE) / 8;
+  const blockAlign = (PCM_CHANNELS * PCM_BITS_PER_SAMPLE) / 8;
+  const header = Buffer.alloc(44);
+
+  header.write('RIFF', 0);
+  header.writeUInt32LE(36 + pcmBuffer.length, 4);
+  header.write('WAVE', 8);
+  header.write('fmt ', 12);
+  header.writeUInt32LE(16, 16);
+  header.writeUInt16LE(1, 20);
+  header.writeUInt16LE(PCM_CHANNELS, 22);
+  header.writeUInt32LE(PCM_SAMPLE_RATE, 24);
+  header.writeUInt32LE(byteRate, 28);
+  header.writeUInt16LE(blockAlign, 32);
+  header.writeUInt16LE(PCM_BITS_PER_SAMPLE, 34);
+  header.write('data', 36);
+  header.writeUInt32LE(pcmBuffer.length, 40);
+
+  return Buffer.concat([header, pcmBuffer]);
+};
+
+export const generateSpeechWithGemini = async ({ text }) => {
+  const speechText = String(text || '').trim();
+
+  if (!speechText) {
+    throw new Error('text is required.');
+  }
+
+  if (!env.gemini.apiKeys.length) {
+    throw new Error('At least one GEMINI_API_KEY_1..5 value is required.');
+  }
+
+  const attemptsLimit = Math.min(env.gemini.maxRetries, env.gemini.apiKeys.length);
+  const startedAtIndex = nextTtsKeyIndex;
+  const attempts = [];
+
+  for (let attemptNumber = 0; attemptNumber < attemptsLimit; attemptNumber += 1) {
+    const keyIndex = (startedAtIndex + attemptNumber) % env.gemini.apiKeys.length;
+    const apiKey = env.gemini.apiKeys[keyIndex];
+
+    try {
+      const response = await fetch(geminiEndpoint(env.gemini.ttsModel), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-goog-api-key': apiKey
+        },
+        body: JSON.stringify({
+          contents: [
+            {
+              parts: [
+                {
+                  text: `Say clearly in Thai, at a natural street-food ordering pace. Speak only this order: ${speechText}`
+                }
+              ]
+            }
+          ],
+          generationConfig: {
+            responseModalities: ['AUDIO'],
+            speechConfig: {
+              voiceConfig: {
+                prebuiltVoiceConfig: {
+                  voiceName: env.gemini.ttsVoice
+                }
+              }
+            }
+          },
+          model: env.gemini.ttsModel
+        })
+      });
+
+      const data = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        const message = data?.error?.message || `Gemini TTS request failed with HTTP ${response.status}`;
+        attempts.push({ keyIndex: keyIndex + 1, status: response.status, message });
+
+        const error = new Error(message);
+        error.retryable = shouldRotateKey(response.status);
+        error.logged = true;
+        throw error;
+      }
+
+      const audioBase64 = extractInlineAudio(data);
+      if (!audioBase64) {
+        throw new Error('Gemini TTS returned empty audio.');
+      }
+
+      nextTtsKeyIndex = (keyIndex + 1) % env.gemini.apiKeys.length;
+
+      return {
+        audio: pcmToWav(Buffer.from(audioBase64, 'base64')),
+        mimeType: 'audio/wav',
+        model: env.gemini.ttsModel,
+        keyIndex: keyIndex + 1,
+        attempts: attempts.length + 1
+      };
+    } catch (error) {
+      if (!error.logged) {
+        attempts.push({ keyIndex: keyIndex + 1, message: error.message });
+      }
+
+      if (!error.retryable || attemptNumber >= attemptsLimit - 1) {
+        const details = attempts.map(item => `key ${item.keyIndex}: ${item.message}`).join('; ');
+        throw new Error(`Gemini TTS failed after ${attempts.length} attempt(s). ${details}`);
+      }
+    }
+  }
+
+  throw new Error('Gemini TTS failed.');
+};
 
 export const analyzeImageWithGemini = async ({ file, profile }) => {
   if (!env.gemini.apiKeys.length) {

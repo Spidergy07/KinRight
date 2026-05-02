@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   AlertTriangle,
   ArrowRight,
@@ -350,21 +350,22 @@ export default function App() {
   const [scanAnalysis, setScanAnalysis] = useState({ status: 'idle', data: null, error: '' });
   const [recommendation, setRecommendation] = useState(null);
   const [selectedAnalysis, setSelectedAnalysis] = useState(null);
+  const [ttsState, setTtsState] = useState({ status: 'idle', error: '' });
+  const audioRef = useRef(null);
+  const audioUrlRef = useRef('');
 
   const derivedProfile = useMemo(() => deriveProfileConstraints(profile), [profile]);
   const profileInstructions = derivedProfile.instructions;
   const hasActiveAllergy = Object.values(derivedProfile.allergies).some(Boolean);
 
   useEffect(() => {
-    if (typeof window === 'undefined' || !('speechSynthesis' in window)) return undefined;
-
-    window.speechSynthesis.getVoices();
-    window.speechSynthesis.onvoiceschanged = () => {
-      window.speechSynthesis.getVoices();
-    };
-
     return () => {
-      window.speechSynthesis.onvoiceschanged = null;
+      if (audioRef.current) {
+        audioRef.current.pause();
+      }
+      if (audioUrlRef.current) {
+        URL.revokeObjectURL(audioUrlRef.current);
+      }
     };
   }, []);
 
@@ -574,20 +575,53 @@ export default function App() {
     };
   };
 
-  const speakText = text => {
+  const playThaiAudio = async text => {
     const speechText = String(text || '').trim();
 
-    if (speechText && typeof window !== 'undefined' && 'speechSynthesis' in window) {
-      const utterance = new SpeechSynthesisUtterance(speechText);
-      const thaiVoice = getThaiSpeechVoice();
+    if (!speechText) {
+      setTtsState({ status: 'error', error: 'No Thai order text to read.' });
+      return;
+    }
 
-      utterance.lang = 'th-TH';
-      if (thaiVoice) utterance.voice = thaiVoice;
-      utterance.rate = 0.78;
-      utterance.pitch = 1;
-      utterance.volume = 1;
-      window.speechSynthesis.cancel();
-      window.speechSynthesis.speak(utterance);
+    setTtsState({ status: 'loading', error: '' });
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/tts`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: speechText })
+      });
+
+      if (!response.ok) {
+        const body = await response.json().catch(() => ({}));
+        throw new Error(body.error || 'Thai audio generation failed.');
+      }
+
+      const audioBlob = await response.blob();
+      const audioUrl = URL.createObjectURL(audioBlob);
+
+      if (audioRef.current) {
+        audioRef.current.pause();
+      }
+      if (audioUrlRef.current) {
+        URL.revokeObjectURL(audioUrlRef.current);
+      }
+
+      const audio = new Audio(audioUrl);
+      audioRef.current = audio;
+      audioUrlRef.current = audioUrl;
+      audio.onended = () => setTtsState({ status: 'idle', error: '' });
+      audio.onerror = () => setTtsState({ status: 'error', error: 'Could not play generated Thai audio.' });
+
+      await audio.play();
+      setTtsState({ status: 'playing', error: '' });
+    } catch (error) {
+      const rawMessage = error.message || 'Thai audio generation failed.';
+      const message =
+        rawMessage === 'Load failed' || rawMessage === 'Failed to fetch'
+          ? `Cannot reach TTS API at ${API_BASE_URL}. Start the API server.`
+          : rawMessage;
+      setTtsState({ status: 'error', error: message });
     }
   };
 
@@ -1123,10 +1157,25 @@ export default function App() {
             </div>
           </div>
 
-          <button type="button" onClick={() => speakText(orderData.speech || orderData.main)} className="primary-button min-h-16">
+          <button
+            type="button"
+            disabled={ttsState.status === 'loading'}
+            onClick={() => playThaiAudio(orderData.speech || orderData.main)}
+            className="primary-button min-h-16 disabled:bg-slate-300 disabled:shadow-none"
+          >
             <Volume2 className="h-6 w-6" />
-            Play Thai audio
+            {ttsState.status === 'loading' ? 'Generating audio...' : 'Play Thai audio'}
           </button>
+          {ttsState.status === 'playing' && (
+            <p className="text-center text-xs font-semibold leading-5 text-slate-500" aria-live="polite">
+              Playing generated Thai audio...
+            </p>
+          )}
+          {ttsState.status === 'error' && (
+            <p className="rounded-lg bg-red-50 px-3 py-2 text-center text-xs font-semibold leading-5 text-red-700" aria-live="polite">
+              {ttsState.error}
+            </p>
+          )}
 
         </div>
 

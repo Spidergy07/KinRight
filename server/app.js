@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import { env, getConfigStatus } from './config/env.js';
 import { analysisRouter } from './routes/analysis.js';
+import { ttsRouter } from './routes/tts.js';
 
 const app = express();
 
@@ -70,6 +71,7 @@ app.get('/api/health', (_request, response) => {
 });
 
 app.use('/api', analysisRouter);
+app.use('/api', ttsRouter);
 
 app.use((error, _request, response, _next) => {
   if (error.name === 'MulterError') {

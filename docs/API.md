@@ -77,6 +77,32 @@ Response:
 
 The MVP does not persist analysis records. `id` and `imageUrl` are intentionally `null`.
 
+## `POST /api/tts`
+
+Generates Thai order audio from text using Gemini TTS.
+
+Request type: `application/json`
+
+Fields:
+
+- `text`: required Thai order text, 300 characters or fewer.
+
+Example:
+
+```bash
+curl -X POST http://localhost:3000/api/tts \
+  -H "Content-Type: application/json" \
+  -d '{"text":"เอาก๋วยเตี๋ยว บะหมี่ น้ำใส ไก่"}' \
+  --output order.wav
+```
+
+Response:
+
+- Content type: `audio/wav`
+- Body: generated WAV audio.
+
+The audio is generated on demand and is not stored by the API.
+
 ## `GET /api/analyses`
 
 Compatibility endpoint. Returns an empty list because history is disabled.
