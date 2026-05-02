@@ -540,8 +540,12 @@ export default function App() {
         .find(step => step.id === 'spice')
         .options.find(option => option.id === orderState.spice);
       parts.push(spiceOpt.thai);
-    } else {
-      if (profileInstructions) parts.push(profileInstructions);
+    }
+
+    const speechText = parts.join(' ');
+
+    if (selectedFood.id !== 'somtum' && profileInstructions) {
+      parts.push(profileInstructions);
     }
 
     const warnings = [];
@@ -566,7 +570,7 @@ export default function App() {
     return {
       main: orderText + noteText,
       warning: warningText,
-      speech: orderText + noteText
+      speech: speechText
     };
   };
 
