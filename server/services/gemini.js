@@ -29,7 +29,9 @@ const foodSchemaHint = `{
       "thaiDish": "ชื่อเมนูภาษาไทย",
       "steps": [{"step": "step name", "options": ["option1", "option2"]}],
       "options": ["standard order"],
-      "safetyWarnings": ["short warning"]
+      "safetyWarnings": ["short warning"],
+      "sharedIngredients": ["ingredient also found in detected dish"],
+      "reason": "short reason why this is a similar or useful alternative"
     }
   ],
   "orderInterface": {
@@ -59,11 +61,13 @@ ${foodSchemaHint}
 
 RULES:
 1. Safety first. Never include options that violate allergy/diet/spice constraints.
-2. Keep it concise. Max 3 order steps, max 4 options per step, max 3 recommendedDishes.
+2. Keep it concise. Max 3 order steps, max 4 options per step.
 3. Use practical Thai street-food ordering, not literal translation.
 4. If unclear, use dishId "unknown" and confidence below 0.5.
 5. thaiOrderSuggestion must be natural Thai text usable to show a vendor.
-6. recommendedDishes should be realistic similar items only when useful.`;
+6. Always generate 2-3 recommendedDishes for the result screen.
+7. recommendedDishes must be alternative Thai menu items that use the same main ingredient, similar ingredients, or a similar ordering context. Include sharedIngredients and reason.
+8. Do not recommend anything unsafe for the traveler profile.`;
 };
 
 const extractText = data => {
@@ -127,7 +131,7 @@ export const generateSpeechWithGemini = async ({ text }) => {
   }
 
   if (!env.gemini.apiKeys.length) {
-    throw new Error('At least one GEMINI_API_KEY_1..5 value is required.');
+    throw new Error('At least one GEMINI_API_KEY_1..7 value is required.');
   }
 
   const attemptsLimit = Math.min(env.gemini.maxRetries, env.gemini.apiKeys.length);
@@ -212,7 +216,7 @@ export const generateSpeechWithGemini = async ({ text }) => {
 
 export const analyzeImageWithGemini = async ({ file, profile }) => {
   if (!env.gemini.apiKeys.length) {
-    throw new Error('At least one GEMINI_API_KEY_1..5 value is required.');
+    throw new Error('At least one GEMINI_API_KEY_1..7 value is required.');
   }
 
   const attemptsLimit = Math.min(env.gemini.maxRetries, env.gemini.apiKeys.length);
