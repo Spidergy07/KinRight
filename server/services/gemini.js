@@ -237,7 +237,7 @@ export const analyzeImageWithGemini = async ({ file, profile }) => {
         body: JSON.stringify({
           generationConfig: {
             temperature: 0.2,
-            maxOutputTokens: 1200,
+            maxOutputTokens: 1800,
             responseMimeType: 'application/json'
           },
           contents: [
